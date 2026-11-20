@@ -4,6 +4,7 @@ A top-down browser game: you start as an amoeba, eat food to level up, and evolv
 
 ## Files
 - `amoeba-drift-v19.html` — **the current game file. Edit it in place** (user's rule, replacing the old "save each change set as the next number" rule). Older numbered files are history. Before each change set, copy it to `backups\amoeba-drift-<yyyy-MM-dd_HHmm>.html` (a PowerShell `Copy-Item`, no reading needed); that folder is the version history. `amoeba-drift.html` is a copy of the published artifact (v13 wrapped in the artifact page skeleton), not a source file.
+- The folder is a git repo pushed to https://github.com/ChrisHipser/Amoeba (branch `main`; `backups/` is git-ignored). Use the Bash tool (Git Bash has git; PowerShell doesn't). Commit and push only when the user asks.
 - A copy of the current version also goes in the user's cloud folder: `C:\Users\chris\OneDrive\Amoeba Drift\` (add each new version there too).
 - `amoeba-gallery-vN.png` — reference sheet of every food shape, pond creature, special, the strider and the player forms (latest: v15).
 - `mitochondria-reference.png` — the user's reference for `drawMito` (orange membrane, white edges, brown matrix, orange cristae).
@@ -24,7 +25,7 @@ A top-down browser game: you start as an amoeba, eat food to level up, and evolv
 - **Evolving** keeps food on screen; the rest of each chunk is dropped, and kept chunks (`stale`) regenerate once out of view.
 - **Fractals**: `PROTOS[level]` holds the ten fractals at increasing depth; the layer zooms out by `FRACZ`=0.9 per evolution.
 - **Background**: four large painted galaxies (`buildGalaxies`, 512 px, drawn 240–1680 px on screen).
-- **Brain wings** (`wing(R,s,ph,mv)`): a 7-segment bending spar with a travelling wave toward the tip, overlapping soft feathers and coverts.
+- **Brain** (`brain`): drawn after the user's photo of a real brain from above: two pinkish-beige hemispheres with dense winding folds (`brainSulci`, random-walk Path2Ds built once in unit size) stroked as dark grooves with a red core and a soft crest highlight, and a deep central fissure.
 - **Scale**: 1 world unit = 1 mm (`MPU`=1000 per metre). Body lengths: amoeba 5–15 cm, sponge ~30 cm, colony ~35–40 cm, zooplankton ~50 cm, urchin/fish/brain ~1.1–1.7 m, dolphin ~3.8 m, orca ~8 m, human ~6 m. The speed readout uses the same scale: it shows your real top speed (`BASE*mult/zoom*motionK`, in mm/s), about 9 cm/s at the start and ~11 m/s for a full-speed orca.
 - **Depth**: shown at the middle left (`#dp`). The water darkens with depth (`dk`) and the caustics fade (`CAUSK`) in `frame`.
 - **Sky**: `dayLight()` drives a 3-minute day/night cycle (`DAY`); `drawSky` paints the sky gradient, sun, moon, stars, puffy clouds, the 250 mm lighter band and the sparkle reflection (`SPK` sprite).
