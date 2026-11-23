@@ -71,12 +71,12 @@ const A=12.8,BASE=180,DRAG=4.5,CHUNK=640,ABS=.4,ZOOM0=2,ZMIN=.07,CS=10,CAUS=760,
 
 // ---- progression: food needed per level, and the player's size variable ----
 function meanVal(j){const c=4*j,hi=Math.min(200,Math.max(26,2*c)),lo=Math.max(1,Math.floor(c*.2)),p=clamp(3-j*.05,1.2,3);return lo+(hi-lo)/(p+1)}
-const LF=[0];{let f=0;for(let j=2;j<=112;j++){const ramp=j>=5&&j<=10?1+.1*(j-4):j>=15&&j<=20?1+.1*(j-14):1;   /* v19: levels 5-10 and 15-20 each cost a little more than the one before */
+const LF=[0];{let f=0;for(let j=2;j<=112;j++){const ramp=(j>=5&&j<=10?1+.1*(j-4):j>=15&&j<=20?1+.1*(j-14):1)*(j<=20?1.2:1)*((j>=6&&j<=10)||(j>=16&&j<=20)?1.3:1);   /* levels 5-10 and 15-20 each cost a little more than the one before; levels up to 20 cost 20% more, and 6-10 and 16-20 another 30% */
   f+=ramp*.5*(j<=10?1.2*(20+5*(j-2)):meanVal(j)*(3+1.5*Math.log(j/10))*(1+.04*Math.max(0,j-20)))*(j>40&&j<=70?1/1.3:1);LF.push(f)}}   /* the fish, urchin and brain levels (41-70) come 30% faster */   // 12 food reaches level 2 (the amoeba levels take 20% more); every later step is scaled to match
 const NAMES=['Mabel','Otis','Wendy','Gus','Hazel','Walt','Pearl','Ruth','Bea','Milo','Dot','Ned'];
-const CLASS=['AMOEBA','SPONGE','COLONY','ZOOPLANKTON','URCHIN','FISH','BOLTZMANN BRAIN','DOLPHIN','ORCA','HUMAN'];
-const LAST=9;   // the final form (v19: the cartoon puppet man, after the orca)
-const ORCA=8,HUMAN=9;
+const CLASS=['AMOEBA','SPONGE','COLONY','ZOOPLANKTON','URCHIN','FISH','BOLTZMANN BRAIN','DOLPHIN','ORCA','HUMAN','ROCKET MAN'];
+const LAST=10;   // the final form: the rocket man, after the human
+const ORCA=8,HUMAN=9,ROCKET=10;
 const URCH=4,FISH=5;   // v18 swapped these two: the urchin now comes before the fish
 const CHORDS=[[0,4,7,11],[0,4,7,10],[0,4,8,11],[0,4,8,10],[0,4,7,9]];
 const DKG=[[30,80,44],[22,62,38],[40,95,50]],DKR=[[120,24,36],[90,18,30]],BLK=[[20,22,26],[12,14,18]],GOLD=[[255,224,120]];
@@ -92,7 +92,7 @@ const VOL=.6;   // master volume: everything 40% quieter than v14
 const MPU=1000,SURF=-200*MPU;   // world units per metre; the water's surface (world y) is always there, 200 m above the start
 let SURFW=[],splashEnd=0,REC=null,RLP=null,RG=null,FXD=null,AMB=null,recOn=false;
 const NOTES=[];let bloopEnd=0,hitEnd=0,ambDrip=0,ambWash=0,pondPad=0,pondAmb=0,calNext=0,calStep=0,fishNext=0;
-let schEnd=0,lvlEnd=0,chompEnd=0,capFrame=0,lastDp='',cC,cX,cI,cLo=.8,cHi=1.2,last=performance.now(),time=0,hitStop=0,shake=0,shx=0,shy=0,lastSpd='';
+let schEnd=0,lvlEnd=0,chompEnd=0,lastDp='',cC,cX,cI,cLo=.8,cHi=1.2,last=performance.now(),time=0,hitStop=0,shake=0,shx=0,shy=0,lastSpd='';
 const P={x:0,y:0,vx:0,vy:0,dvx:0,dvy:0,ax:0,ay:0,sx:0,sy:0,svx:0,svy:0,pulseR:0,bulges:[],pods:[],food:0,sl:1,dl:1,size:SIZE1,evos:0,evoLevel:1,
   mult:1,baseMult:1,hd:0,sponHd:0,lureT:0,tail:0,total:0,sE:1,sLock:false,sprinting:false,colT:[170,220,190],key:0,pi:0,twitchT:8,twitchAt:-9,twitchDir:1,ldx:0,ldy:-1,danceT:0,dashCD:0,knifeCD:0,knives:[],skipT:0,moveAmt:0,
   hairs:[],cl:[],recent:[],col:[170,220,190],colW:1,name:'FRED',arpK:-1,arpLen:6,chord:CHORDS[0],rootSemi:0,lastEat:-9,splashed:false,meals:0,ords:[]};
@@ -107,7 +107,7 @@ function flashMsg(s){msgTxt=s;msgT=2.2}
 const levelFor=f=>{let L=1;while(L<LF.length-2&&f>=LF[L])L++;return L};
 const gate=()=>10*(P.evos+1);
 const cap=()=>4*P.sl;
-const FS=[1,1.6,1,1.6,2.6,2.4,2.3,4.94,9.88,11];   /* urchin, then the fish (1.5x v17's) */   // sponge and zooplankton 60% bigger; fish, urchin, dolphin larger still; the orca is twice the dolphin
+const FS=[1,1.6,1,1.6,2.6,2.4,2.3,4.94,9.88,11,11];   /* urchin, then the fish (1.5x v17's) */   // sponge and zooplankton 60% bigger; fish, urchin, dolphin larger still; the orca is twice the dolphin
 const rad=()=>A*P.size*FS[P.evos]*(P.evos===6?1+.035*Math.max(0,P.sl-P.evoLevel):1);   // the brain also swells a little more with every level
 const ZOOR=A*Math.sqrt(4*30+.5)*FS[3];   // the zooplankton's size on arrival: the biggest a mitochondrion gets
 const viewR=()=>Math.hypot(W,H)/2/zoom;                 // half the screen diagonal, in world units
@@ -224,15 +224,15 @@ const sfx={
 
 function bassD(t,f,dur=.2,g=.09){   // a short, low-passed saw bass note
   const o=AC.createOscillator(),lp=AC.createBiquadFilter(),e=AC.createGain();
-  o.type='sawtooth';o.frequency.value=f;lp.type='lowpass';lp.frequency.value=300;
+  o.type='sawtooth';o.frequency.value=f;lp.type='lowpass';lp.frequency.value=650;
   e.gain.setValueAtTime(.0001,t);e.gain.exponentialRampToValueAtTime(g,t+.01);e.gain.exponentialRampToValueAtTime(.0001,t+dur);
   o.connect(lp).connect(e).connect(bus||MG);o.start(t);o.stop(t+dur+.02);o.onended=()=>{o.disconnect();lp.disconnect();e.disconnect()};
 }
 
 // ---- notes: a random arpeggio three octaves above middle C; the last note hands over to a new one ----
 CHORDS.push([0,3,7,10],[0,3,7,14],[0,4,7,14],[0,5,7,10],[0,3,6,10]);   // 5 m7, 6 m(add9), 7 add9, 8 7sus4, 9 m7b5
-CHORDS.push([0,4,7],[0,3,7],[0,5,7]);   // 10 major, 11 minor, 12 sus4 (plain triads)
-const M7=0,D7=1,m7=5,s7=8,m7b5=9,MAJ=10,MIN=11,SUS=12;
+CHORDS.push([0,4,7],[0,3,7],[0,5,7],[4,7,12],[3,7,12],[4,7,10,12],[0,4,7,10,13],[0,3,6]);   // 10 major, 11 minor, 12 sus4, 13 major 1st inversion, 14 minor 1st inversion, 15 dominant 7th 6/5 inversion, 16 7(b9), 17 diminished
+const M7=0,D7=1,m7=5,m7b5=9,MAJ=10,MIN=11,SUS=12,MAJ6=13,MIN6=14,D65=15,D7b9=16,DIM=17;
 const PROGS=[   // [semitones above C, chord], written in C and played in the current key
   [[0,M7],[7,D7],[9,m7],[5,M7]],                                        // Cmaj7 G7 Am7 Fmaj7
   [[0,M7],[9,m7],[2,m7],[7,D7]],                                        // Cmaj7 Am7 Dm7 G7
@@ -243,12 +243,16 @@ const PROGS=[   // [semitones above C, chord], written in C and played in the cu
   [[2,m7],[7,D7],[0,M7],[5,M7],[11,m7b5],[4,D7],[9,m7]],                // Dm7 G7 Cmaj7 Fmaj7 Bm7b5 E7 Am7
   [[0,MAJ],[4,m7],[5,M7],[5,MIN]],                                      // I iii7 IVmaj7 iv
   [[9,m7],[7,MAJ],[5,M7],[7,SUS]],                                      // vi7 V IVmaj7 Vsus4
-  [[2,m7],[7,s7],[7,D7],[0,M7]],                                        // ii7 V7sus4 V7 Imaj7
   [[9,MIN],[5,MAJ],[0,MAJ],[7,MAJ],[0,MAJ]],                            // vi IV I V I
   [[0,M7],[5,MAJ],[7,MAJ],[9,MIN],[9,MAJ],[7,D7],[0,MIN]],              // Imaj7 IV V vi VI V7 i
   [[0,MAJ],[5,MAJ],[7,MAJ],[0,MAJ]],                                    // I IV V I
   [[0,MAJ],[9,MIN],[5,MAJ],[7,MAJ]],                                    // I vi IV V
-  [[0,MIN],[10,MAJ],[8,MAJ],[7,MAJ]],                                   // i bVII bVI V
+  [[0,MAJ],[5,MAJ],[7,MAJ],[5,SUS],[5,MAJ],[5,MIN],[0,MAJ]],            // I IV V IVsus4 IV iv I
+  [[0,MIN],[7,MIN],[5,MIN],[7,MAJ],[0,MIN],[7,MIN],[5,MIN],[7,SUS]],    // i v iv V i v iv Vsus4
+  [[9,MIN],[2,D65],[5,MIN],[0,MAJ6]],                                   // vi V65/V iv I6
+  [[0,MAJ],[4,m7],[5,M7],[5,MIN],[0,MAJ],[4,m7],[5,M7],[9,MAJ],[2,MIN],[7,m7],[4,MIN],[9,MIN],[5,MAJ],[7,D7],[0,MAJ]],   // I iii7 IVmaj7 iv I iii7 IVmaj7 VI ii vmin7 iii vi IV V7 I
+  [[0,MAJ],[7,MIN6],[10,MAJ],[8,MAJ],[2,m7b5],[7,D7b9],[0,MIN]],        // I v6 bVII bVI iiø7 V7(b9) i
+  [[0,MIN],[7,MAJ],[5,MIN],[0,D7],[7,MIN],[2,m7b5],[0,MIN],[0,DIM],[7,MAJ]],   // i V iv I7 v iiø7 i idim V
 ];
 let PROG=PROGS[0];
 function pickProg(){const old=PROG;do PROG=PROGS[Math.floor(Math.random()*PROGS.length)];while(PROG===old&&PROGS.length>1)}
@@ -308,18 +312,20 @@ function pondAmbience(t){   // every form: a faint pond. Drops of water and slow
   if(t>=ambDrip){ambDrip=t+.5+Math.random()*2.2;drip(t+.02,.03+Math.random()*.03);if(Math.random()<.35)drip(t+.1+Math.random()*.12,.018)}
   if(t>=ambWash){ambWash=t+3+Math.random()*3;swell(t,5+Math.random()*3,'lowpass',380+Math.random()*200,600+Math.random()*300,.5,.03)}
 }
-function calypso(t){   // the urchin's island rock: kick and backbeat snare, driving bass on a 3-3-2 that follows the arpeggio's key, shaker, hats and conga slaps
-  const st=60/112/4;if(calNext<t-.3)calNext=t+.05;
+function calypso(t){   // the urchin's island rock, turned way up: four-on-the-floor kick with pushes, snare + clap backbeat, driving 16th hats, a gritty bass on the arpeggio's root, chord stabs, crashes and tom fills
+  const st=60/128/4;if(calNext<t-.3)calNext=t+.05;
   let r=P.rootSemi;while(r>-12)r-=12;while(r<-24)r+=12;const bf=FOODP*261.63*2**(r/12);   // the bass root, low
-  bus=MUS;
+  bus=MG;   // straight to the main mix (not the quieter music bus)
   while(calNext<t+.2){const s=calStep++%16,bar=Math.floor(calStep/16)%4,tb=calNext;
-    noise(tb,.03,8000,6000,s%2?.012:.024,3);                                                  // shaker on every 16th, louder on the 8ths
-    if(s%4===2)noise(tb,.06,9000,7000,.03,4);                                                 // open hat on the off-beats
-    if(s===0||s===6||s===8||(s===10&&bar%2))tone(120,tb,.22,.17,'sine',0,45);                 // kick
-    if(s===4||s===12){noise(tb,.16,1900,900,.1,.9);tone(190,tb,.08,.05,'triangle',0,150)}     // snare backbeat
-    if(s===15&&bar===3)noise(tb,.1,2200,1200,.05,1);                                          // a fill into the next phrase
-    if(s===0||s===3||s===6||s===8||s===11||s===14)bassD(tb,bf*(s===14&&bar%2?1.5:1),.17,.11);   // the bass drives it along
-    if(s===3||s===11||s===14)tone(300,tb,.09,.05,'triangle',.15,235);                        // conga slaps
+    noise(tb,.035,9000,7000,s%2?.025:.05,3);                                                      // 16th hats, accented on the 8ths
+    if(s%4===2)noise(tb,.09,9500,7000,.07,4);                                                     // open hat on the off-beats
+    if(s%4===0||s===7||(s===14&&bar%2)){tone(130,tb,.26,.42,'sine',0,42);noise(tb,.015,3000,1200,.08,1.5)}   // kick: on every beat, plus pushes
+    if(s===4||s===12){noise(tb,.2,2100,900,.26,.9);tone(200,tb,.1,.13,'triangle',0,150);clap(tb+.005,.12)}  // snare and clap on the backbeat
+    if(s===0&&bar===0){noise(tb,1.4,7000,3500,.12,.6)}                                            // a crash every four bars
+    if(bar===3&&s>=12){tone([220,180,150,120][s-12],tb,.18,.16,'sine',.2,[160,130,110,85][s-12])}  // tom fill into the next phrase
+    if(s%2===0||s===3||s===11){bassD(tb,bf*(s===14&&bar%2?1.5:s===10?2:1),.15,.2);if(s%4===0)bassD(tb,bf*2,.12,.06)}   // the bass drives every 8th, with an octave on the beat
+    if(s===6||s===14){for(const c of P.chord)tone(FOODP*261.63*2**((c+P.rootSemi)/12),tb,.16,.03,'sawtooth',.25)}   // offbeat chord stabs on the arpeggio's chord
+    if(s===3||s===11)tone(310,tb,.09,.09,'triangle',.15,235);                                     // conga slaps
     calNext+=st}
   bus=null;
 }
@@ -367,12 +373,13 @@ function musicTick(){   // urchin: deep house; brain: dreamy space pads; dolphin
   if(!AC||dead||paused||AC.state!=='running')return;
   const t=AC.currentTime;
   pondAmbience(t);   // v19: under everything, in every form
-  if(P.evos===6&&t>=padNext){padNext=t+1.15;
+  const spaceHigh=P.evos===ROCKET&&SURF-P.y>altA(2000);   // high in the sky and in space: the dreamy pads
+  if((P.evos===6||spaceHigh)&&t>=padNext){padNext=t+1.15;
     const root=110*2**((((P.rootSemi%12)+12)%12)/12),ch=P.chord;
     pad(root*2**((ch[Math.floor(Math.random()*ch.length)]+(Math.random()<.5?12:0))/12),t,.05);pad(root/2,t,.045);
     if(Math.random()<.35){bus=MUS;tone(root*8*2**(ch[Math.floor(Math.random()*ch.length)]/12),t+Math.random(),1.3,.012,'sine',1);bus=null}}
   if(P.evos<=5)pondMusic(t);
-  if(P.evos===HUMAN)humanBeat(t);   // the human: body percussion instead of whale song
+  if(P.evos>=HUMAN){if(!spaceHigh)humanBeat(t)}   // the human: body percussion instead of whale song
   else if(P.evos>=7&&t>=whaleNext){whaleNext=t+2.6+Math.random()*4.5;whale(t);dopplerWave();if(Math.random()<.4)pad(55*2**((((P.rootSemi%12)+12)%12)/12),t,.05)}
 }
 function playNote(){
@@ -518,8 +525,32 @@ function updateRods(dt){
   if(P.evos>URCH){if(bact.length)bact.length=0}   // v19: rods are gone after the urchin
   else{swimList(bact,dt,300/zoom*Math.sqrt(P.size/SIZE1));   // rods sense you from farther away as you grow
   while(bact.length<26)bact.push(newRod(false))}
-  if(P.evos>=7){swimList(PREY,dt,Math.max(rad()*2.2,300/zoom));while(PREY.length<10)PREY.push(newPrey(false))}else if(PREY.length)PREY.length=0;   // the dolphin and orca hunt fish
+  if(P.evos>=FISH){swimList(PREY,dt,Math.max(rad()*2.2,300/zoom));while(PREY.length<16)PREY.push(newPrey(false))}else if(PREY.length)PREY.length=0;   // from the fish on, 16 fish to hunt
+  updateBig(dt);
 }
+const BIG=[],BIGV=[   // big fish that cruise the sea from the fish phase on, growing as they age; the predators can eat you, but only while you are a fish
+  {col:[122,96,72],sx:1,sy:1.25,pred:false},     // grouper
+  {col:[58,82,124],sx:1.25,sy:.9,pred:false},     // tuna
+  {col:[172,182,192],sx:1.7,sy:.55,pred:true},    // barracuda
+  {col:[108,124,140],sx:1.5,sy:.8,pred:true},     // shark
+  {col:[166,164,150],sx:.8,sy:1.5,pred:false}];   // sunfish
+const bigK=()=>P.evos<=FISH?1:P.evos===6?1.1:P.evos===7?1.25:1.9;   // they grow a little against the brain and dolphin, a lot against the orca and after (kept under ~4x your size, or they would fill the screen)
+function newBig(init){const[x,y]=init?ringPos(.6,1.8):ringPos(1.2,2),v=BIGV[Math.floor(Math.random()*BIGV.length)];return{x,y,hd:Math.random()*TAU,v,base:1.2+Math.random(),age:0,ph:Math.random()*TAU,nd:0,vx:0,vy:0}}
+const bigR=b=>rad()*b.base*(1+.6*Math.min(1,b.age/60))*bigK();
+function updateBig(dt){
+  if(P.evos<FISH||P.y<SURF){if(BIG.length&&P.evos<FISH)BIG.length=0;return}
+  while(BIG.length<4)BIG.push(newBig(BIG.length<2));
+  const S=1/zoom,top=BASE*P.mult/zoom*motionK(),far=viewR()*2.7;
+  for(const b of BIG){b.age+=dt;b.nd-=dt;const R=bigR(b),dx=P.x-b.x,dy=P.y-b.y,d=Math.hypot(dx,dy)||1,hunt=b.v.pred&&P.evos===FISH&&!dead&&R>rad()&&d<R*5;
+    if(hunt)b.hd+=ad(Math.atan2(dy,dx),b.hd)*(1-Math.exp(-2.5*dt));
+    else{if(b.nd<=0){b.nd=2+Math.random()*4;b.tg=b.hd+(Math.random()-.5)*1.6}b.hd+=ad(b.tg===undefined?b.hd:b.tg,b.hd)*(1-Math.exp(-.8*dt))}
+    const sp=hunt?top*.9:top*.35+40*S,k=1-Math.exp(-2*dt);b.vx+=(Math.cos(b.hd)*sp-b.vx)*k;b.vy+=(Math.sin(b.hd)*sp-b.vy)*k;b.x+=b.vx*dt;b.y+=b.vy*dt;
+    if(b.y<SURF+R*.6){b.y=SURF+R*.6;b.hd=Math.abs(ad(b.hd,0));b.tg=b.hd}
+    if(d>far+R)[b.x,b.y]=ringPos(1.2,2);
+    if(hunt&&d<R*.55+rad()*.4)die({food:0,sl:1,evos:0})}   // caught
+}
+function drawBig(t){for(const b of BIG){const R=bigR(b)*zoom,x=sxOf(b.x),y=syOf(b.y);if(x<-R*3||x>W+R*3||y<-R*3||y>H+R*3)continue;
+  ctx.save();ctx.translate(x,y);ctx.rotate(b.hd);if(Math.cos(b.hd)<0)ctx.scale(1,-1);ctx.scale(b.v.sx,b.v.sy);fish(R,t*.7+b.ph,b.v.col.join(','),.6,0);ctx.restore()}}
 const PREY=[],PREYC=[[190,205,220],[230,200,90],[235,140,70],[150,190,210],[200,170,200]];
 function newPrey(init){   // a fish to eat: it swims like a rod; the bigger it is, the more food it gives
   const[x,y]=init?ringPos(.3,2.2):ringPos(1.15,2),a=Math.random()*TAU,u=Math.random(),val=Math.max(10,Math.round(cap()*(.12+.78*u**1.5)));
@@ -589,6 +620,7 @@ function updateFx(dt){
     f.life+=dt;
     if(f.ty==='num'){const d=Math.exp(-.7*dt);f.vx*=d;f.vy*=d;f.x+=f.vx*dt;f.y+=f.vy*dt}
     else if(f.ty==='spark'){f.x+=f.vx*dt;f.y+=f.vy*dt}
+    else if(f.ty==='flame'||f.ty==='smoke'){const d=Math.exp(-(f.ty==='flame'?3:1.4)*dt);f.vx*=d;f.vy*=d;f.x+=f.vx*dt;f.y+=f.vy*dt}
     else if(f.ty==='drop'){f.vy+=SURFG()*dt;f.x+=f.vx*dt;f.y+=f.vy*dt;if(f.vy>0&&f.y>SURF+surfH(f.x))f.life=f.max}   // spray falls back into the sea
     else if(f.ty==='blood'||f.ty==='tp'){const red=f.ty==='blood',d=Math.exp(-(red?.9:2.6)*dt);f.vx*=d;f.vy*=d;
       if(red){const c=14/zoom;f.vx+=(Math.sin(time*.7+f.ph*3+f.y*zoom*.004)*c-.2*f.vx)*dt;f.vy+=(Math.cos(time*.6+f.ph*2+f.x*zoom*.004)*c-.2*f.vy)*dt}   // blood is carried off by slow, swirling currents
@@ -597,8 +629,8 @@ function updateFx(dt){
       const v=Math.hypot(P.vx+P.dvx,P.vy+P.dvy);if(v>1)f.ang=Math.atan2(-(P.vy+P.dvy),-(P.vx+P.dvx));
       f.acc+=dt/.13;while(f.acc>=1){f.acc--;const R=rad();BW.push({x:P.x+Math.cos(f.ang)*R*.55,y:P.y+Math.sin(f.ang)*R*.55,ang:f.ang,R,life:0,max:.9,a:1-f.life*.6,ph:Math.random()*TAU})}}
   }
-  fx=fx.filter(f=>f.life<f.max);
-  for(const w of BW)w.life+=dt;if(BW.length)BW=BW.filter(w=>w.life<w.max);
+  keep(fx,f=>f.life<f.max);   // (filtered in place: no new array every frame)
+  for(const w of BW)w.life+=dt;keep(BW,w=>w.life<w.max);
 }
 
 // ---- v19: the water's surface (orca and on): little waves, leaping, the sunset sky ----
@@ -622,21 +654,21 @@ function recRestore(){   // back in the water: the music snaps back in under the
   for(const p of[REC.delayTime,RLP.frequency,RG.gain]){if(p.cancelAndHoldAtTime)p.cancelAndHoldAtTime(t);else{const v=p.value;p.cancelScheduledValues(t);p.setValueAtTime(v,t)}}
   RG.gain.linearRampToValueAtTime(0,t+.04);REC.delayTime.setValueAtTime(0,t+.05);RLP.frequency.setValueAtTime(18000,t+.05);RG.gain.linearRampToValueAtTime(1,t+.4)}
 function airStep(dt){   // in the air gravity and your momentum decide where you go; you can only turn your body
-  P.vx*=Math.exp(-.12*dt);P.vy+=SURFG()*dt;P.x+=P.vx*dt;P.y+=P.vy*dt;
-  let ix=(keys.d?1:0)-(keys.a?1:0),iy=(keys.s?1:0)-(keys.w?1:0);
-  if(mouse.down){ix=cam.x+(mouse.x-W/2)/zoom-P.x;iy=cam.y+(mouse.y-H/2)/zoom-P.y}
-  if(touch.on){ix=touch.x-sxOf(P.x);iy=touch.y-syOf(P.y)}
+  const dr=Math.exp(-.12*atmo()*dt);P.vx*=dr;P.vy+=SURFG()*earthG()*dt;marsPull(dt);if(P.mars)return;P.x+=P.vx*dt;P.y+=P.vy*dt;
+  const[ix,iy]=inputVec();
   if(ix||iy)P.hd+=ad(Math.atan2(iy,ix),P.hd)*(1-Math.exp(-5*dt));
+  if(!P.jet)P.hd+=ad(Math.atan2(P.vy,P.vx),P.hd)*(1-Math.exp(-.7*dt));   // a slight pull to face the way you are flying (not while the jetpack fires)
   P.tailS+=(.35-P.tailS)*(1-Math.exp(-2*dt));P.dph+=dt*(2.2+3*waveAmt());P.moveAmt+=(1-P.moveAmt)*(1-Math.exp(-6*dt));
   P.pulseR*=Math.exp(-6*dt);P.danceT=Math.max(0,P.danceT-dt);P.lureT=Math.max(0,P.lureT-dt);P.dashCD=Math.max(0,P.dashCD-dt);P.knifeCD=Math.max(0,P.knifeCD-dt);if(P.knifeQ&&P.knifeCD<=0)knife();P.skipT=Math.max(0,P.skipT-dt);
   {const cf=1-Math.exp(-.45*dt);for(let i=0;i<3;i++)P.col[i]+=(P.colT[i]-P.col[i])*cf}
 }
 function checkSurface(){   // breaking the surface on the way out (a leap) and on the way back in (a splash)
   if(dead){P.air=false;return}
+  if(P.mars)return;
   const up=P.y<SURF;
   if(up&&!P.air){P.vx+=P.dvx;P.vy+=P.dvy;P.dvx=P.dvy=0;P.air=true;P.airT=time;
     const v=Math.hypot(P.vx,P.vy)*zoom;disturbSurface(P.x,clamp(v/20,6,32)/zoom);spray(P.x,Math.round(8+v/70),v*.5);
-    P.bigAir=v>350;if(AC&&P.bigAir){sfx.whoosh();recSlow()}}
+    P.bigAir=v>350;if(AC&&P.bigAir){sfx.whoosh();if(P.evos!==ROCKET)recSlow()}}   // (the rocket man's music doesn't slow down)
   else if(!up&&P.air){P.air=false;
     const v=Math.hypot(P.vx,P.vy)*zoom;disturbSurface(P.x,clamp(v/16,8,40)/zoom);spray(P.x,Math.round(12+v/45),v*.6);
     if(AC){if((P.bigAir||time-P.airT>.3)&&time>splashEnd){splashEnd=time+.3;const k=clamp(v/1500,.25,1);   // nose first (within 20 degrees of your line of travel): a clean dive; anything else: a belly flop
@@ -649,15 +681,16 @@ let SPTS=null;   // this frame's surface line, in screen pixels
 function drawSky(){
   SPTS=null;
   const ys=syOf(SURF);if(ys<-90)return;   // deep down: no sky in view
-  const pts=[];for(let x=-12;x<=W+12;x+=8){const wx=cam.x+(x-W/2-shx)/zoom;pts.push(x,syOf(SURF+surfH(wx)))}SPTS=pts;
-  const top=Math.min(0,ys-H*1.4),sr=Math.min(W,H)*.075,L=dayLight(),{e,wd,ws,wn}=L,th=L.th;
-  const sunX=W*(.5-.44*Math.cos(th)),sunY=ys-H*.75*e,moonX=W*(.5+.44*Math.cos(th)),moonY=ys+H*.75*e;   // the sun rises on the left and sets on the right; the moon is opposite
+  const pts=[];   // (the sky's own light, sun and stars are kept on screen while you are high above the sea: yS)
+  for(let x=-12;x<=W+12;x+=8){const wx=cam.x+(x-W/2-shx)/zoom;pts.push(x,syOf(SURF+surfH(wx)))}SPTS=pts;
+  const yS=Math.min(ys,H*.98),top=Math.min(0,yS-H*1.4),sr=Math.min(W,H)*.075,L=dayLight(),{e,wd,ws,wn}=L,th=L.th;
+  const sunX=W*(.5-.44*Math.cos(th)),sunY=yS-H*.75*e,moonX=W*(.5+.44*Math.cos(th)),moonY=yS+H*.75*e;   // the sun rises on the left and sets on the right; the moon is opposite
   const mix3=(d,s,n)=>[0,1,2].map(i=>Math.round(d[i]*wd+s[i]*ws+n[i]*wn)),rgb=a=>`rgb(${a.join(',')})`;
   ctx.save();ctx.beginPath();ctx.moveTo(-12,top-10);ctx.lineTo(W+12,top-10);for(let i=pts.length-2;i>=0;i-=2)ctx.lineTo(pts[i],pts[i+1]);ctx.closePath();ctx.clip();
-  const g=ctx.createLinearGradient(0,ys-H*1.3,0,ys);g.addColorStop(0,rgb(mix3([40,96,190],[30,22,70],[3,4,14])));g.addColorStop(.45,rgb(mix3([86,150,222],[120,48,110],[8,14,36])));g.addColorStop(.78,rgb(mix3([150,200,240],[225,96,90],[16,26,58])));g.addColorStop(1,rgb(mix3([215,236,250],[255,196,120],[30,42,76])));
-  ctx.fillStyle=g;ctx.fillRect(-12,top-10,W+24,ys-top+40);
-  const sa=wn+.35*ws;if(sa>.02)for(let i=0;i<70;i++){const sx=(i*197.3)%W,sy2=ys-H*1.3+((i*91.7)%(H*1.1));if(sy2>ys-H*.2)continue;ctx.fillStyle=`rgba(255,245,235,${sa*(.3+.5*Math.sin(time*1.5+i*2.1)**2)})`;ctx.fillRect(sx,sy2,1.4,1.4)}   // stars come out at dusk
-  if(e>-.15){const gc=ws>wd?'255,170,100':'255,240,200',gl=ctx.createRadialGradient(sunX,sunY,sr*.5,sunX,sunY,H*.8);gl.addColorStop(0,`rgba(${gc},.55)`);gl.addColorStop(.35,`rgba(${gc},.16)`);gl.addColorStop(1,`rgba(${gc},0)`);ctx.fillStyle=gl;ctx.fillRect(-12,top-10,W+24,ys-top+40);
+  const g=ctx.createLinearGradient(0,yS-H*1.3,0,yS);g.addColorStop(0,rgb(mix3([40,96,190],[30,22,70],[3,4,14])));g.addColorStop(.45,rgb(mix3([86,150,222],[120,48,110],[8,14,36])));g.addColorStop(.78,rgb(mix3([150,200,240],[225,96,90],[16,26,58])));g.addColorStop(1,rgb(mix3([215,236,250],[255,196,120],[30,42,76])));
+  ctx.fillStyle=g;ctx.fillRect(-12,top-10,W+24,yS-top+40);
+  const sa=wn+.35*ws;if(sa>.02)for(let i=0;i<70;i++){const sx=(i*197.3)%W,sy2=yS-H*1.3+((i*91.7)%(H*1.1));if(sy2>yS-H*.2)continue;ctx.fillStyle=`rgba(255,245,235,${sa*(.3+.5*Math.sin(time*1.5+i*2.1)**2)})`;ctx.fillRect(sx,sy2,1.4,1.4)}   // stars come out at dusk
+  if(e>-.15){const gc=ws>wd?'255,170,100':'255,240,200',gl=ctx.createRadialGradient(sunX,sunY,sr*.5,sunX,sunY,H*.8);gl.addColorStop(0,`rgba(${gc},.55)`);gl.addColorStop(.35,`rgba(${gc},.16)`);gl.addColorStop(1,`rgba(${gc},0)`);ctx.fillStyle=gl;ctx.fillRect(-12,top-10,W+24,yS-top+40);
     const sg=ctx.createRadialGradient(sunX,sunY-sr*.3,0,sunX,sunY,sr);sg.addColorStop(0,'#fffcee');sg.addColorStop(.6,ws>wd?'#ffe2a0':'#fff6d8');sg.addColorStop(1,ws>wd?'#ffb35c':'#ffe9a8');ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sunX,sunY,sr,0,TAU);ctx.fill()}
   if(e<.15){ctx.fillStyle='rgba(235,238,250,.92)';ctx.beginPath();ctx.arc(moonX,moonY,sr*.6,0,TAU);ctx.fill();ctx.fillStyle='rgba(180,186,205,.45)';ctx.beginPath();ctx.arc(moonX-sr*.15,moonY-sr*.1,sr*.13,0,TAU);ctx.arc(moonX+sr*.18,moonY+sr*.12,sr*.09,0,TAU);ctx.fill()}
   const lit=mix3([255,255,255],[255,196,150],[70,80,110]),shade=mix3([170,186,210],[120,70,120],[24,30,52]);   // puffy cumulus, sun-soaked on the side facing the sun
@@ -713,7 +746,7 @@ function updateKnife(dt){   // knives fly on until they leave the loaded world; 
     }
     k.life+=dt;k.go+=Math.hypot(k.vx,k.vy)*dt;k.gone=k.gone||k.go>k.range||Math.abs(k.x-P.x)>far||Math.abs(k.y-P.y)>far;   // each knife flies for 2.8 seconds
   }
-  P.knives=P.knives.filter(k=>!k.gone);
+  keep(P.knives,k=>!k.gone);
 }
 function dash(){
   if(P.dashCD>0||P.air)return;   // no boosting in mid-air
@@ -749,6 +782,7 @@ const waveAmt=()=>Math.max(P.tailS,Math.min(1,P.danceT*1.6));   // the dolphin/o
 function twitchOff(t){const u=(t-P.twitchAt)/.35;return u>=0&&u<=1?P.twitchDir*.6*Math.sin(Math.PI*u):0}
 function bodyAng(){return P.evos===1?P.sponHd+twitchOff(time):P.hd+Math.PI/2}
 function updatePlayer(dt,t){
+  if(P.mars){marsStep(dt);return}
   if(P.air){airStep(dt);return}
   let ix=(keys.d?1:0)-(keys.a?1:0),iy=(keys.s?1:0)-(keys.w?1:0);
   if(ix||iy)P.goto=null;                                   // the keys always take over from a click
@@ -757,7 +791,7 @@ function updatePlayer(dt,t){
   if(touch.on){const tx=touch.x-sxOf(P.x),ty=touch.y-syOf(P.y);if(Math.hypot(tx,ty)>14){ix=tx;iy=ty}}   // hold a finger down to swim toward it
   const L=Math.hypot(ix,iy);P.tail+=((L?1:0)-P.tail)*(1-Math.exp(-9*dt));P.tailS+=((L?1:0)-P.tailS)*(1-Math.exp(-2.2*dt));
   const moving=Math.hypot(P.vx,P.vy)>BASE*P.mult/zoom*.15;
-  P.sprinting=!!keys.shift&&L>0&&!P.sLock&&P.sE>0;   // sprint: 1.4x for up to 4 seconds, 4.5 to recharge; it only drains while you are actually moving
+  P.sprinting=!!keys.shift&&P.evos!==ROCKET&&L>0&&!P.sLock&&P.sE>0;   // sprint: 1.4x for up to 4 seconds, 4.5 to recharge; it only drains while you are actually moving
   if(P.sprinting){if(moving)P.sE=Math.max(0,P.sE-dt/4);if(P.sE<=0)P.sLock=true}else{P.sE=Math.min(1,P.sE+dt/4.5);if(P.sLock&&(!keys.shift||P.sE>.3))P.sLock=false}
   if(P.sprinting&&moving){P.trail.push({x:P.x,y:P.y,t:time});   // and a subtle spray of twinkling motes shed from your sides
     P.tpAcc=(P.tpAcc||0)+dt*34;const R=rad(),back=Math.atan2(-P.vy,-P.vx),c=P.col.map((v,i)=>Math.round(v*.35+[170,240,255][i]*.65)).join(',');
@@ -784,8 +818,8 @@ function updatePlayer(dt,t){
   {const cf=1-Math.exp(-.45*dt);for(let i=0;i<3;i++)P.col[i]+=(P.colT[i]-P.col[i])*cf}
   P.pulseR*=Math.exp(-6*dt);P.danceT=Math.max(0,P.danceT-dt);P.lureT=Math.max(0,P.lureT-dt);P.dashCD=Math.max(0,P.dashCD-dt);P.knifeCD=Math.max(0,P.knifeCD-dt);if(P.knifeQ&&P.knifeCD<=0)knife();P.skipT=Math.max(0,P.skipT-dt);
   if(Math.random()<dt*.5)P.pods.push({ang:Math.random()*TAU,t:0,life:1.4+Math.random(),k:.08+Math.random()*.12});
-  for(const p of P.pods)p.t+=dt;P.pods=P.pods.filter(p=>p.t<p.life);
-  for(const b of P.bulges)b.t+=dt;P.bulges=P.bulges.filter(b=>b.t<b.life);
+  for(const p of P.pods)p.t+=dt;keep(P.pods,p=>p.t<p.life);
+  for(const b of P.bulges)b.t+=dt;keep(P.bulges,b=>b.t<b.life);
   const jig=P.danceT>0?9:1,nuc=P.ords[0];   // a wiggle shakes the organelles about much more
   const ords=P.ords,no=ords.length;
   for(let i=1;i<no;i++)for(let j=i+1;j<no;j++){   // free-floating organelles nudge each other apart instead of hanging off the nucleus
@@ -964,7 +998,7 @@ function buildGalaxies(){   // v19: four larger, richer spiral galaxies, painted
     GAL.push(c);
   }
 }
-let HZ=null,HZX=null,hzF=0;   // the low-resolution haze buffer
+let HZ=null,HZX=null,hzF=0,GLY=null,GLX=null,glF=0;const GL0={x:0,y:0};   // the low-resolution haze buffer
 const STARO={x:0,y:0},HAZE={x:0,y:0};   // accumulated from camera movement in screen terms (the old cam.x*zoom form leapt when zoom changed far from the origin)
 const starScale=()=>.92*Math.pow(.86,evoS);
 function drawBackground(){   // black water with a drifting blue haze, the odd galaxy, and grains of sand that scale with the view
@@ -974,14 +1008,18 @@ function drawBackground(){   // black water with a drifting blue haze, the odd g
     for(let i=0;i<3;i++){const x=hw0*(.5+.42*Math.sin(time*.05*(i+1)+i*2.1-HAZE.x)),y=hh0*(.5+.4*Math.cos(time*.04*(i+1)+i*1.3-HAZE.y)),R=Math.max(hw0,hh0)*(.5+.12*i);
       const g=g0.createRadialGradient(x,y,0,x,y,R);g.addColorStop(0,['rgba(16,70,200,.42)','rgba(8,100,210,.3)','rgba(34,48,190,.34)'][i]);g.addColorStop(1,'rgba(0,12,70,0)');g0.fillStyle=g;g0.fillRect(0,0,hw0,hh0)}}
   ctx.imageSmoothingEnabled=true;ctx.drawImage(HZ,0,0,W,H);
-  const px=cam.x*.5,py=cam.y*.5,hw=W/2/zoom,hh=H/2/zoom,GC=8400;
-  for(let cy=Math.floor((py-hh)/GC)-1;cy<=Math.floor((py+hh)/GC)+1;cy++)
-    for(let cx=Math.floor((px-hw)/GC)-1;cx<=Math.floor((px+hw)/GC)+1;cx++){
-      const r=rng(hash2(cx*9+1,cy*7-3));if(r()>.22)continue;
-      const x=((cx+r())*GC-px)*zoom+W/2,y=((cy+r())*GC-py)*zoom+H/2,sz=clamp((2000+r()*2800)*zoom,240,1680);   // v19: four times the size
-      if(x<-sz||x>W+sz||y<-sz||y>H+sz)continue;
-      ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU+time*.004);ctx.scale(1,.4+r()*.5);ctx.globalAlpha=.75;ctx.drawImage(GAL[Math.floor(r()*GAL.length)],-sz/2,-sz/2,sz,sz);ctx.restore();
-    }
+  {const gw=Math.ceil(W/2),gh=Math.ceil(H/2);   // the galaxies are painted at half resolution every third frame and slid in between (painting them full size every frame was the biggest cost)
+  if(!GLY||GLY.width!==gw||GLY.height!==gh){GLY=document.createElement('canvas');GLY.width=gw;GLY.height=gh;GLX=GLY.getContext('2d');glF=0}
+  if(glF++%3===0){const old=ctx;GLX.setTransform(1,0,0,1,0,0);GLX.clearRect(0,0,gw,gh);GLX.setTransform(.5,0,0,.5,0,0);ctx=GLX;GL0.x=cam.x;GL0.y=cam.y;
+    try{const px=cam.x*.5,py=cam.y*.5,hw=W/2/zoom,hh=H/2/zoom,GC=8400;
+    for(let cy=Math.floor((py-hh)/GC)-1;cy<=Math.floor((py+hh)/GC)+1;cy++)
+      for(let cx=Math.floor((px-hw)/GC)-1;cx<=Math.floor((px+hw)/GC)+1;cx++){
+        const r=rng(hash2(cx*9+1,cy*7-3));if(r()>.22)continue;
+        const x=((cx+r())*GC-px)*zoom+W/2,y=((cy+r())*GC-py)*zoom+H/2,sz=clamp((2000+r()*2800)*zoom,240,1680);
+        if(x<-sz||x>W+sz||y<-sz||y>H+sz)continue;
+        ctx.save();ctx.translate(x,y);ctx.rotate(r()*TAU+time*.004);ctx.scale(1,.4+r()*.5);ctx.globalAlpha=.75;ctx.drawImage(GAL[Math.floor(r()*GAL.length)],-sz/2,-sz/2,sz,sz);ctx.restore();
+      }}finally{ctx=old}}
+  ctx.drawImage(GLY,-(cam.x-GL0.x)*.5*zoom,-(cam.y-GL0.y)*.5*zoom,W,H)}
   if(!SAND)return;
   const s=starScale(),T=1024*s,focus=clamp(.55+.45*evoS/LAST,0,1),B=.5;   // stars at half v14's brightness; they sharpen and shrink as you evolve
   const x0=W/2-((STARO.x%1024)+1024)%1024*s,y0=H/2-((STARO.y%1024)+1024)%1024*s;   // the tile is scaled about the screen centre and offset by an accumulated drift, so evolving never makes it jump
@@ -989,12 +1027,13 @@ function drawBackground(){   // black water with a drifting blue haze, the odd g
   for(let y=y0-T*Math.ceil(y0/T);y<H;y+=T)for(let x=x0-T*Math.ceil(x0/T);x<W;x+=T){if(focus<.99){ctx.globalAlpha=(1-focus)*B;ctx.drawImage(SANDB||SAND,x,y,T+1,T+1)}ctx.globalAlpha=focus*B;ctx.drawImage(SAND,x,y,T+1,T+1)}   // (the blurred pass is skipped once it is invisible)
   ctx.globalAlpha=1;
 }
-function caustics(t){   // computed every third frame at 1/10 resolution, softened once at that size, then drawn with a single full-screen blit (was seven)
+let cVals=null,cRow=0,cMn=Infinity,cMx=-Infinity;   // the caustics pass in progress
+function caustics(t){   // computed at 1/10 resolution, a third of the rows each frame (so the work is spread evenly instead of spiking every third frame), softened once at that size, then drawn with a single full-screen blit
   if(CAUSK<.03)return;   // too deep to see any
-  if(capFrame++%3===0){
-    const d=cI.data,w=cC.width,h=cC.height,ox=cam.x*.02+SEED[0],oy=cam.y*.02+SEED[1],vals=new Float32Array(w*h);
-    let mn=Infinity,mx=-Infinity;
-    for(let j=0;j<h;j++)for(let i=0;i<w;i++){
+  {const d=cI.data,w=cC.width,h=cC.height,ox=cam.x*.02+SEED[0],oy=cam.y*.02+SEED[1];
+    if(!cVals||cVals.length!==w*h){cVals=new Float32Array(w*h);cRow=0;cMn=Infinity;cMx=-Infinity}
+    const vals=cVals,j1=Math.min(h,cRow+Math.ceil(h/3));let mn=cMn,mx=cMx;
+    for(let j=cRow;j<j1;j++)for(let i=0;i<w;i++){
       const u=(i*CS+ox)/CAUS*TAU-250,v=(j*CS+oy)/CAUS*TAU-250;
       let ix=u,iy=v,c=1;
       for(let n=0;n<3;n++){
@@ -1005,6 +1044,8 @@ function caustics(t){   // computed every third frame at 1/10 resolution, soften
       }
       c=1.17-Math.pow(c/4,1.4);vals[j*w+i]=c;if(c<mn)mn=c;if(c>mx)mx=c;
     }
+    cMn=mn;cMx=mx;cRow=j1;
+    if(cRow>=h){cRow=0;cMn=Infinity;cMx=-Infinity;   // a full pass is done: normalise it and soften it into the buffer
     cLo+=(mn-cLo)*.1;cHi+=(mx-cHi)*.1;
     const span=Math.max(1e-4,cHi-cLo);
     for(let k=0;k<vals.length;k++){const q=clamp((vals[k]-cLo)/span,0,1),a=q*q*q*q*q*q,o=k*4;d[o]=215;d[o+1]=255;d[o+2]=235;d[o+3]=a*140}
@@ -1012,7 +1053,7 @@ function caustics(t){   // computed every third frame at 1/10 resolution, soften
     if(!cB||cB.width!==w||cB.height!==h){cB=document.createElement('canvas');cB.width=w;cB.height=h;cBX=cB.getContext('2d')}
     cBX.clearRect(0,0,w,h);cBX.globalCompositeOperation='lighter';
     for(const[dx,dy,al]of CBLUR){cBX.globalAlpha=al;cBX.drawImage(cC,dx/CS,dy/CS)}   // the old seven-tap blur, done once on the small buffer
-    cBX.globalAlpha=1;cBX.globalCompositeOperation='source-over';
+    cBX.globalAlpha=1;cBX.globalCompositeOperation='source-over';}
   }
   if(!cB)return;
   ctx.save();ctx.globalAlpha=CAUSK;ctx.globalCompositeOperation='screen';ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
@@ -1488,19 +1529,20 @@ function dolphin(R,t,mv=waveAmt(),w=P.dph,orca=false){   // a dolphin (or, with 
   else{const i=3;ctx.strokeStyle='rgba(20,40,60,.7)';ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(sx[0],sy[0]+th[0]*.2);ctx.quadraticCurveTo(sx[2],sy[2]+th[2]*.5,sx[4],sy[4]+th[4]*.25);ctx.stroke();
    ctx.fillStyle='#0a0f14';ctx.beginPath();ctx.arc(sx[i]-R*.06,sy[i]-th[i]*.2,R*.045,0,TAU);ctx.fill();ctx.fillStyle='rgba(255,255,255,.85)';ctx.beginPath();ctx.arc(sx[i]-R*.05,sy[i]-th[i]*.2-R*.015,R*.014,0,TAU);ctx.fill()}
 }
-function human(R,t,mv=P.tail,ph=P.dph,air=false){   // v19, the final form: a cartoon man (smooth, doll-like), jointed like a split-pin paper puppet, swimming the crawl. Head toward +x, back up
+function human(R,t,mv=P.tail,ph=P.dph,air=false,walk=false){   // v19, the final form: a cartoon man (smooth, doll-like), jointed like a split-pin paper puppet, swimming the crawl. Head toward +x, back up
   const SK='#f2c3a0',SKD='#d8997a',LN='rgba(105,58,40,.6)',st=ph*1.1*(air?1.7:1),idle=1-clamp(mv+(air?1:0),0,1);
   const jerk=a=>a+.07*Math.sin(3*a);   // puppet limbs move in slightly stiff, stepped arcs
   const seg=(x,y,a,len,w,col)=>{const ex=x+Math.cos(a)*len,ey=y+Math.sin(a)*len;ctx.lineCap='round';ctx.strokeStyle=LN;ctx.lineWidth=w+R*.025;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(ex,ey);ctx.stroke();ctx.strokeStyle=col;ctx.lineWidth=w;ctx.stroke();return[ex,ey]};
   const pin=(x,y)=>{ctx.fillStyle='rgba(120,72,52,.75)';ctx.beginPath();ctx.arc(x,y,R*.026,0,TAU);ctx.fill();ctx.fillStyle='rgba(255,236,210,.7)';ctx.beginPath();ctx.arc(x-R*.008,y-R*.008,R*.01,0,TAU);ctx.fill()};
   const arm=(k,col)=>{const th=st+k*Math.PI,swim=jerk(th),tread=Math.PI*.55+.45*Math.sin(t*1.6+k*Math.PI);
-    const a1=swim+ad(tread,swim)*idle,bend=(.95*Math.max(0,-Math.sin(th))+.25*Math.max(0,Math.sin(th)))*(1-idle)+.45*idle;   // windmill stroke: elbow high on the way over, nearly straight on the pull
+    const a1=walk?Math.PI+.1+.6*mv*Math.sin(st*1.2+k*Math.PI):swim+ad(tread,swim)*idle,bend=walk?.25:(.95*Math.max(0,-Math.sin(th))+.25*Math.max(0,Math.sin(th)))*(1-idle)+.45*idle;   // windmill stroke: elbow high on the way over, nearly straight on the pull
     const[ex,ey]=seg(R*.48,-R*.02,a1,R*.36,R*.105,col),[hx,hy]=seg(ex,ey,a1-bend,R*.32,R*.088,col);
-    ctx.save();ctx.translate(hx,hy);ctx.rotate(a1-bend);ctx.fillStyle=col;ctx.strokeStyle=LN;ctx.lineWidth=R*.01;   // a little mitten hand with a thumb
-    ctx.beginPath();ctx.ellipse(R*.035,0,R*.05,R*.034,0,0,TAU);ctx.fill();ctx.stroke();ctx.beginPath();ctx.ellipse(R*.02,-R*.035,R*.022,R*.013,-.6,0,TAU);ctx.fill();ctx.stroke();ctx.restore();pin(R*.48,-R*.02);pin(ex,ey)};
-  const leg=(k,col)=>{const q=st*2.2+k*Math.PI,amp=(air?.75:.32)*(1-idle)+.12*idle,a1=jerk(Math.PI+amp*Math.sin(q)+(air?.25*Math.sin(st*.7+k):0)),bend=(air?.9:.38)*Math.max(0,Math.sin(q+.8))+.1;   // flutter kick (a bicycle in the air)
+    ctx.save();ctx.translate(hx,hy);ctx.rotate(a1-bend);ctx.fillStyle=col;ctx.strokeStyle=LN;ctx.lineWidth=R*.008;   // a real little hand: palm, four fingers and a thumb
+    for(let f=0;f<4;f++){const fy=(f-1.5)*R*.016;ctx.beginPath();ctx.ellipse(R*(.068+.006*(1.5-Math.abs(f-1.5))),fy,R*.026,R*.008,(f-1.5)*.08,0,TAU);ctx.fill();ctx.stroke()}
+    ctx.beginPath();ctx.ellipse(R*.03,-R*.034,R*.022,R*.009,-.7,0,TAU);ctx.fill();ctx.stroke();ctx.beginPath();ctx.roundRect(0,-R*.03,R*.05,R*.06,R*.015);ctx.fill();ctx.stroke();ctx.restore();pin(R*.48,-R*.02);pin(ex,ey)};
+  const leg=(k,col)=>{const q=st*(walk?1.2:2.2)+k*Math.PI,amp=walk?.05+.55*mv:(air?.75:.32)*(1-idle)+.12*idle,a1=jerk(Math.PI+amp*Math.sin(q)+(air?.25*Math.sin(st*.7+k):0)),bend=(air?.9:.38)*Math.max(0,Math.sin(q+.8))+.1;   // flutter kick (a bicycle in the air)
     const[kx,ky]=seg(-R*.34,R*.02,a1,R*.44,R*.145,col),[fx2,fy2]=seg(kx,ky,a1+bend,R*.42,R*.115,col);
-    ctx.save();ctx.translate(fx2,fy2);ctx.rotate(a1+bend+.9);ctx.fillStyle=col;ctx.strokeStyle=LN;ctx.lineWidth=R*.012;ctx.beginPath();ctx.ellipse(R*.035,0,R*.065,R*.032,0,0,TAU);ctx.fill();ctx.stroke();ctx.beginPath();ctx.arc(-R*.01,R*.004,R*.024,0,TAU);ctx.fill();ctx.restore();pin(-R*.34,R*.02);pin(kx,ky)};   // a small foot with a round heel
+    ctx.save();ctx.translate(fx2,fy2);ctx.rotate(a1+bend+.9);ctx.fillStyle=col;ctx.strokeStyle=LN;ctx.lineWidth=R*.012;ctx.beginPath();ctx.moveTo(-R*.025,-R*.02);ctx.quadraticCurveTo(R*.03,-R*.03,R*.1,-R*.012);ctx.quadraticCurveTo(R*.125,0,R*.1,R*.018);ctx.lineTo(R*.06,R*.02);ctx.quadraticCurveTo(R*.03,R*.008,R*.005,R*.022);ctx.quadraticCurveTo(-R*.035,R*.025,-R*.032,0);ctx.closePath();ctx.fill();ctx.stroke();   /* a real foot: heel, arch, ball and toes */ctx.lineWidth=R*.006;ctx.beginPath();for(let k=0;k<4;k++){const tx=R*(.092-k*.008),ty=R*(-.01+k*.008);ctx.moveTo(tx,ty);ctx.lineTo(tx+R*.012,ty+R*.002)}ctx.stroke();ctx.restore();pin(-R*.34,R*.02);pin(kx,ky)};   // a small foot with a round heel
   arm(1,SKD);leg(1,SKD);   // the far limbs, in shade, behind the body
   const tg=ctx.createLinearGradient(0,-R*.22,0,R*.22);tg.addColorStop(0,'#f7d2b2');tg.addColorStop(.6,SK);tg.addColorStop(1,SKD);
   ctx.fillStyle=tg;ctx.strokeStyle=LN;ctx.lineWidth=R*.015;
@@ -1535,7 +1577,8 @@ function drawPlayer(t){
     case FISH:ctx.rotate(P.hd);if(Math.cos(P.hd)<0)ctx.scale(1,-1);fish(R,t,rgb,P.tail,fishHorn(),true);break;   // stays upright when facing left
     case URCH:ctx.rotate(P.hd);urchin(R,t);break;
     case 6:ctx.rotate(P.hd);brain(R,t,P.tail,true);break;
-    case HUMAN:ctx.rotate(P.hd);if(Math.cos(P.hd)<0)ctx.scale(1,-1);human(R,t,P.tail,P.dph,P.air);break;
+    case HUMAN:case ROCKET:ctx.rotate(P.hd);if(P.mars?P.walkDir<0:Math.cos(P.hd)<0)ctx.scale(1,-1);   // standing on Mars, he faces the way he walks
+      if(P.evos===ROCKET)rocketMan(R,t,P.tail,P.dph,P.air,!!P.mars);else human(R,t,P.tail,P.dph,P.air);break;
     default:ctx.rotate(P.hd);if(Math.cos(P.hd)<0)ctx.scale(1,-1);dolphin(R,t,undefined,undefined,P.evos===8);   // never swims upside down
   }
   ctx.restore();
@@ -1604,6 +1647,9 @@ function drawFx(){
         ctx.fillStyle=`rgba(240,250,255,${a})`;ctx.beginPath();ctx.arc(X,Y,r*.8,0,TAU);ctx.fill();
         if(tw>.85){const g=r*4*(tw-.85)/.15;ctx.strokeStyle=`rgba(225,245,255,${.8*a})`;ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(X-g,Y);ctx.lineTo(X+g,Y);ctx.moveTo(X,Y-g);ctx.lineTo(X,Y+g);ctx.stroke()}
       }
+    }else if(f.ty==='flame'||f.ty==='smoke'){exhaustSprites();const X=sxOf(f.x),Y=syOf(f.y);   // the jetpack's fire (bright, additive) and smoke (grey, swelling, only where there is air)
+      if(f.ty==='flame'){const r=f.s*zoom*(1-.5*k)+2;ctx.globalCompositeOperation='lighter';ctx.globalAlpha=1-k;ctx.drawImage(FLM,X-r,Y-r,2*r,2*r);ctx.globalCompositeOperation='source-over'}
+      else{const r=f.s*zoom*(1+3.5*k)+2;ctx.globalAlpha=.3*(1-k)*f.ai;ctx.drawImage(SMK,X-r+Math.sin(f.life*2+f.ph)*r*.1,Y-r,2*r,2*r)}ctx.globalAlpha=1;
     }else if(f.ty==='drop'){const X=sxOf(f.x),Y=syOf(f.y),r=Math.max(1,f.r*zoom);
       ctx.strokeStyle='rgba(225,240,255,.55)';ctx.lineWidth=r;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(X,Y);ctx.lineTo(X-f.vx*zoom*.012,Y-f.vy*zoom*.012);ctx.stroke();
       ctx.fillStyle='rgba(255,250,240,.85)';ctx.beginPath();ctx.arc(X,Y,r*.8,0,TAU);ctx.fill();
@@ -1659,7 +1705,7 @@ const deadly=e=>e.food>0&&e.food>=2*P.food;        // it can eat you once it has
 const edible=e=>P.food>0&&e.food<=.6*P.food;      // you can eat it once it has eaten at least 40% less food than you
 function die(e){
   dead=true;deadT=time;P.moveAmt=0;P.knives=[];
-  if(AC){recRestore();sfx.death()}P.air=false;
+  if(AC){recRestore();sfx.death()}P.air=false;P.mars=false;jetSound(false);
   e.food+=Math.max(10,P.food);growEnemy(e);
   $('died').classList.add('on');$('evo').classList.remove('on');
 }
@@ -1667,15 +1713,15 @@ function resetGame(){   // back to the very beginning
   Object.assign(P,{x:0,y:0,vx:0,vy:0,dvx:0,dvy:0,ax:0,ay:0,sx:0,sy:0,svx:0,svy:0,pulseR:0,bulges:[],pods:[],food:0,total:0,evos:0,evoLevel:1,mult:1,baseMult:1,hd:0,sponHd:0,lureT:0,tail:0,
     danceT:0,dashCD:0,knifeCD:0,knives:[],skipT:0,moveAmt:0,hairs:[],cl:[],recent:[],col:[170,220,190],colT:[170,220,190],sE:1,sLock:false,sprinting:false,name:'FRED',arpK:-1,lastEat:-9,meals:0,splashed:false,
     trail:[],goto:null,dph:0,tailS:0});
-  makeOrds();P.knifeN=1;P.knifeQ=false;P.whisk=null;P.air=false;SURFW=[];SPTS=null;if(AC)recRestore();syncLevel();dead=false;hitStop=0;shake=0;meterS=0;zoom=zoomT=ZOOM0;cam.x=cam.y=0;
-  chunks.clear();fx=[];BUB=[];BW=[];WAKE=[];respawn.length=0;ENEMIES.length=0;enemyNext=time+3;bact.length=0;PREY.length=0;striders=[];
+  makeOrds();P.knifeN=1;P.knifeQ=false;P.whisk=null;P.air=false;P.mars=false;P.jet=false;marsLock=false;SKYC.clear();jetSound(false);SURFW=[];SPTS=null;if(AC)recRestore();syncLevel();dead=false;hitStop=0;shake=0;meterS=0;zoom=zoomT=ZOOM0;cam.x=cam.y=0;
+  chunks.clear();fx=[];BUB=[];BW=[];WAKE=[];respawn.length=0;ENEMIES.length=0;enemyNext=time+3;bact.length=0;PREY.length=0;BIG.length=0;striders=[];
   spawnStart();
   $('died').classList.remove('on');hudUpdate();progUpdate();drawHudIcon();
 }
 function eatEnemy(e){   // worth everything it has eaten
   const gain=Math.max(1,Math.floor(e.food));
   enemyEaten(e,null);P.total+=gain;
-  if(AC)sfx.squish();
+  if(AC)sfx.squish();playNote();   // eating an enemy plays a note of the eating arpeggio too
   if(!avail()){P.food+=gain;const before=P.dl;syncLevel();if(P.dl>before)levelUpFx();
     fx.push({ty:'num',x:e.x,y:e.y,vx:0,vy:-24/zoom,life:0,max:2.8,val:gain,gold:true,ph:0})}
   fx.push({ty:'ring',x:P.x,y:P.y,life:0,max:1,c:'g'});P.pulseR=1;hudUpdate();
@@ -1746,13 +1792,13 @@ function enemyAmoeba(e,R,t,rgb){
   }
 }
 let ET=null,ETX=null;
-function drawTinted(R,col,fn){   // draw fn (which uses the global ctx) onto a scratch canvas, wash it with col, then stamp it at the current origin
-  const S=Math.min(1600,Math.ceil(R*6));if(!ET){ET=document.createElement('canvas');ETX=ET.getContext('2d')}
-  if(ET.width<S||ET.height<S){ET.width=ET.height=S}
-  ETX.setTransform(1,0,0,1,0,0);ETX.clearRect(0,0,S,S);ETX.translate(S/2,S/2);
+function drawTinted(R,col,fn){   // draw fn (which uses the global ctx) onto a scratch canvas of at most 384 px, wash it with col, then stretch it into place (big enemies cost little this way)
+  const S=Math.ceil(R*6),k=Math.min(1,384/S),Q=Math.ceil(S*k);if(!ET){ET=document.createElement('canvas');ETX=ET.getContext('2d')}
+  if(ET.width<Q||ET.height<Q){ET.width=ET.height=Math.max(Q,ET.width)}
+  ETX.setTransform(1,0,0,1,0,0);ETX.clearRect(0,0,Q,Q);ETX.setTransform(k,0,0,k,Q/2,Q/2);
   const old=ctx;ctx=ETX;try{fn()}finally{ctx=old}
-  ETX.setTransform(1,0,0,1,0,0);ETX.globalCompositeOperation='source-atop';ETX.fillStyle=col;ETX.fillRect(0,0,S,S);ETX.globalCompositeOperation='source-over';
-  ctx.drawImage(ET,0,0,S,S,-S/2,-S/2,S,S);
+  ETX.setTransform(1,0,0,1,0,0);ETX.globalCompositeOperation='source-atop';ETX.fillStyle=col;ETX.fillRect(0,0,Q,Q);ETX.globalCompositeOperation='source-over';
+  ctx.drawImage(ET,0,0,Q,Q,-S/2,-S/2,S,S);
 }
 function drawEnemies(t){   // each enemy wears the form its own level has earned, tinted red, with its name overhead
   for(const e of ENEMIES){
@@ -1769,8 +1815,8 @@ function drawEnemies(t){   // each enemy wears the form its own level has earned
     else if(e.evos===3){ctx.rotate(e.hd+Math.PI/2);zooplankton(R,t,rgb)}
     else if(e.evos===FISH){ctx.rotate(e.hd);if(Math.cos(e.hd)<0)ctx.scale(1,-1);fish(R,t,rgb,1,.5)}
     else if(e.evos===URCH){ctx.rotate(e.hd);urchin(R,t);ctx.strokeStyle=`rgba(${rgb},.7)`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,R*.55,0,TAU);ctx.stroke()}
-    else drawTinted(R,['rgba(255,170,60,.35)','rgba(200,60,170,.35)','rgba(255,110,40,.35)','rgba(255,80,60,.3)'][e.evos-6],()=>{ctx.rotate(e.hd);if(e.evos>=7&&Math.cos(e.hd)<0)ctx.scale(1,-1);   // big enemies are tinted on a small offscreen canvas (a CSS filter on the main canvas was very slow)
-      if(e.evos===6)brain(R,t,1);else if(e.evos===HUMAN)human(R,t,1,t*7+e.ph,false);else dolphin(R,t,1,t*7.7+e.ph,e.evos===ORCA)});
+    else drawTinted(R,['rgba(255,170,60,.35)','rgba(200,60,170,.35)','rgba(255,110,40,.35)','rgba(255,80,60,.3)','rgba(255,80,60,.3)'][e.evos-6],()=>{ctx.rotate(e.hd);if(e.evos>=7&&Math.cos(e.hd)<0)ctx.scale(1,-1);   // big enemies are tinted on a small offscreen canvas (a CSS filter on the main canvas was very slow)
+      if(e.evos===6)brain(R,t,1);else if(e.evos>=HUMAN)human(R,t,1,t*7+e.ph,false);else dolphin(R,t,1,t*7.7+e.ph,e.evos===ORCA)});
     ctx.restore();
     const big=enemyR(e)>rad(),hunt=!dead&&e.mode===4,fl=hunt?.35+.65*(.5+.5*Math.sin(t*14)):1;   // name: white if smaller than you, red if larger; it flashes while hunting you
     ctx.font=`600 ${hunt?15:13}px Bahnschrift,'Segoe UI',Arial,sans-serif`;ctx.textAlign='center';ctx.fillStyle=big?`rgba(255,80,70,${.95*fl})`:`rgba(255,255,255,${.9*fl})`;
@@ -1788,7 +1834,7 @@ function updateBubbles(dt){
     if(bubAcc>1)bubAcc=0;
   }
   for(const b of BUB){b.life+=dt;const d=Math.exp(-1.4*dt);b.vx*=d;b.vy=b.vy*d-9/zoom*dt;b.x+=b.vx*dt;b.y+=b.vy*dt}
-  if(BUB.length)BUB=BUB.filter(b=>b.life<b.max&&b.y>SURF);   // bubbles pop at the surface
+  keep(BUB,b=>b.life<b.max&&b.y>SURF);   // bubbles pop at the surface
 }
 function updateWake(dt){   // arched ripples left behind from the colony stage on, stronger with each evolution
   if(P.evos>=2&&!dead){
@@ -1796,7 +1842,7 @@ function updateWake(dt){   // arched ripples left behind from the colony stage o
     if(wakeAcc>=1&&Math.hypot(P.vx,P.vy)>1){wakeAcc=0;const a=Math.atan2(P.vy,P.vx),R=rad();if(WAKE.length<70)WAKE.push({x:P.x-Math.cos(a)*R*.5,y:P.y-Math.sin(a)*R*.5,a,w:R,life:0,max:1.7})}
   }
   for(const w of WAKE)w.life+=dt;
-  if(WAKE.length)WAKE=WAKE.filter(w=>w.life<w.max);
+  keep(WAKE,w=>w.life<w.max);
 }
 function drawWake(){
   const base=.035+.04*(P.evos-2);ctx.lineWidth=1.2;ctx.lineCap='round';
@@ -1826,7 +1872,7 @@ function drawHudIcon(){   // top left of the HUD: a small stylised version of yo
   const c=$('hico');if(!c||!c.getContext)return;
   const dpr=window.devicePixelRatio||1,cw=c.clientWidth||34,ch=c.clientHeight||150,k=dpr*1.3,ev=P.evos;
   c.width=Math.round(cw*k);c.height=Math.round(ch*k);
-  const g=c.getContext('2d'),old=ctx,E=[[2.3,2.3],[2.3,2.3],[3.6,3.6],[1.8,2.3],[2.7,2.7],[2.0,3.4],[3.7,2.5],[2.4,3.8],[2.6,3.9],[1.7,2.6]][ev],R=Math.min(cw/E[0],ch/E[1])*.94,rgb='170,235,250';
+  const g=c.getContext('2d'),old=ctx,E=[[2.3,2.3],[2.3,2.3],[3.6,3.6],[1.8,2.3],[2.7,2.7],[2.0,3.4],[3.7,2.5],[2.4,3.8],[2.6,3.9],[1.7,2.6],[1.7,2.6]][ev],R=Math.min(cw/E[0],ch/E[1])*.94,rgb='170,235,250';
   ctx=g;g.save();g.scale(k,k);g.translate(cw/2,ch/2);g.rotate(-Math.PI/2);
   try{
     if(ev===0){membrane(R,0,rgb);organelles(R,0)}
@@ -1838,6 +1884,7 @@ function drawHudIcon(){   // top left of the HUD: a small stylised version of yo
     else if(ev===URCH)urchin(R,0);
     else if(ev===6)brain(R,0,0);
     else if(ev===HUMAN)human(R,0,.3,1,false);
+    else if(ev===ROCKET)rocketMan(R,0,.3,1,false,false);
     else dolphin(R,0,.4,1,ev===ORCA);
   }finally{g.restore();ctx=old}
   g.save();g.globalCompositeOperation='source-atop';const gr=g.createLinearGradient(0,0,c.width,0);gr.addColorStop(0,'rgba(174,248,255,.5)');gr.addColorStop(1,'rgba(79,180,220,.5)');g.fillStyle=gr;g.fillRect(0,0,c.width,c.height);g.restore();   // a wash of the HUD's cyan over the drawing
@@ -1847,7 +1894,7 @@ function evolve(){
   if(!avail()||P.evos>=LAST)return;
   P.food=Math.round(P.food);   // total snaps to a whole number
   P.baseMult=P.mult;P.evos++;P.evoLevel=P.sl;
-  P.name=NAMES[Math.floor(Math.random()*NAMES.length)];
+  P.name=P.evos===HUMAN?'李建國':P.evos===ROCKET?'王大中 (JOHN SPACE)':NAMES[Math.floor(Math.random()*NAMES.length)];   // the man always has the same name, and so does the rocket man
   P.cl=P.evos===2?makeCells():[];
   P.hairs=P.evos===1?makeHairs(9,9,.065,'rgba(240,240,236,.85)',1.5,.03,.965,false):P.evos===3?makeHairs(22,9,.26,'rgba(205,255,190,.8)',2.4,.022,.86,true):[];   // sponge: short white hair; zooplankton: long hair, heavily damped as if dragging through water
   if(P.evos===1)addOrgs();   // the sponge carries twice the organelles
@@ -1909,67 +1956,222 @@ function resize(){
   cX=cC.getContext('2d');cI=cX.createImageData(cC.width,cC.height);
 }
 
+// ---- the rocket man, the sky above and space ----
+const SKS=255000,SKL=SKS/MPU;   // the height meter: metres = SKL*(exp(a/SKS)-1) for a world units above the surface. Near the surface that is 1 unit = 1 mm (like the depth); it grows exponentially, so Mars (78 million km away) is about 5 million units up
+const altM=a=>a<=0?a/MPU:SKL*(Math.exp(a/SKS)-1),altA=m=>SKS*Math.log(1+m/SKL);
+const A_MARS=altA(7.8e10),RM=40000,MARSG=()=>1330/zoom;   // Mars: a little world 80 km across (a mountain next to the man), with 0.38 of the leap gravity
+let marsX=0,marsLock=false,JET=null,hiUp=false;
+const marsC=()=>[marsX,SURF-A_MARS-RM];
+function fmtM(m){const s=m<0?'-':'';m=Math.abs(m);return s+(m<1000?m.toFixed(m<100?1:0)+' m':m<1e9?Math.round(m/1000).toLocaleString()+' km':(m/1e9).toFixed(m<1e10?2:1)+' million km')}
+const earthG=()=>P.evos===ROCKET?clamp(1-(SURF-P.y)/1.6e6,0,1):1;   // Earth's pull fades away as the rocket man climbs into space
+const atmo=()=>Math.exp(-Math.max(0,SURF-P.y)/600000);              // how much air there is (smoke and drag need it)
+function tickTimers(dt){P.pulseR*=Math.exp(-6*dt);P.danceT=Math.max(0,P.danceT-dt);P.lureT=Math.max(0,P.lureT-dt);P.dashCD=Math.max(0,P.dashCD-dt);P.knifeCD=Math.max(0,P.knifeCD-dt);if(P.knifeQ&&P.knifeCD<=0)knife();P.skipT=Math.max(0,P.skipT-dt);
+  const cf=1-Math.exp(-.45*dt);for(let i=0;i<3;i++)P.col[i]+=(P.colT[i]-P.col[i])*cf}
+function inputVec(){let ix=(keys.d?1:0)-(keys.a?1:0),iy=(keys.s?1:0)-(keys.w?1:0);
+  if(mouse.down){ix=cam.x+(mouse.x-W/2)/zoom-P.x;iy=cam.y+(mouse.y-H/2)/zoom-P.y}
+  if(touch.on){ix=touch.x-sxOf(P.x);iy=touch.y-syOf(P.y)}return[ix,iy]}
+function jetSound(on){   // the jetpack roars only while it fires: a band of hiss over a low rumble, faded in and out (never left running)
+  if(!AC)return;const t=AC.currentTime;
+  if(on&&!JET){const s=AC.createBufferSource(),bp=AC.createBiquadFilter(),g=AC.createGain(),s2=AC.createBufferSource(),l2=AC.createBiquadFilter(),g2=AC.createGain();
+    s.buffer=NB;s.loop=true;bp.type='bandpass';bp.frequency.value=900;bp.Q.value=.6;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.13,t+.08);
+    s2.buffer=NB;s2.loop=true;l2.type='lowpass';l2.frequency.value=160;g2.gain.setValueAtTime(.0001,t);g2.gain.exponentialRampToValueAtTime(.35,t+.12);
+    s.connect(bp).connect(g).connect(FXD);s2.connect(l2).connect(g2).connect(FXD);s.start(t,Math.random()*3);s2.start(t,Math.random()*3);
+    JET={s,s2,g,g2,nodes:[s,bp,g,s2,l2,g2]};bus=FXD;tone(90,t,.25,.15,'sine',0,45);noise(t,.18,2500,600,.12,1);bus=null}   // with an ignition whump
+  else if(!on&&JET){const j=JET;JET=null;for(const p of[j.g.gain,j.g2.gain]){p.cancelScheduledValues(t);p.setTargetAtTime(.0001,t,.07)}j.s.stop(t+.5);j.s2.stop(t+.5);j.s.onended=()=>j.nodes.forEach(n=>n.disconnect())}}
+function rocketUpdate(dt){   // Shift fires the jetpack: endless thrust along the way you face
+  const on=P.evos===ROCKET&&!dead&&!!keys.shift;P.jet=on;jetSound(on&&!paused);
+  if(!on)return;
+  const c=Math.cos(P.hd),s=Math.sin(P.hd),R=rad();
+  if(P.mars){P.mars=false;P.air=true;P.vx=P.up[0]*9000;P.vy=P.up[1]*9000}   // lift off from Mars
+  if(P.air){const acc=SURFG()*1.8;P.vx+=c*acc*dt;P.vy+=s*acc*dt;const vmax=30000+Math.max(0,SURF-P.y)*.012,v=Math.hypot(P.vx,P.vy);if(v>vmax){P.vx*=vmax/v;P.vy*=vmax/v}}
+  else{const k=BASE*P.mult/zoom*12;P.dvx+=c*k*dt;P.dvy+=s*k*dt}   // under water it works as a hydro-jet
+  if(AC&&Math.random()<dt*7){bus=FXD;noise(AC.currentTime,.04,3000,1400,.04,2);bus=null}   // crackle
+  const fl=c<0?-1:1,nx=P.x+(-.42*R)*c-(-.31*R*fl)*s,ny=P.y+(-.42*R)*s+(-.31*R*fl)*c,water=!P.air&&!P.mars,ai=atmo();
+  P.exAcc=(P.exAcc||0)+dt*110;
+  while(P.exAcc>=1){P.exAcc--;if(fx.length>=880)break;const a=P.hd+Math.PI+(Math.random()-.5)*.35,v=(R*3+Math.random()*R*4);
+    if(water){if(BUB.length<340)BUB.push({x:nx,y:ny,vx:Math.cos(a)*v*.5+P.vx*.3,vy:Math.sin(a)*v*.5+P.vy*.3,r:R*(.03+Math.random()*.05),life:0,max:.6+Math.random()*.6,a:.45});continue}
+    fx.push({ty:'flame',x:nx,y:ny,vx:Math.cos(a)*v+P.vx*.6,vy:Math.sin(a)*v+P.vy*.6,s:R*(.07+Math.random()*.07),life:0,max:.14+Math.random()*.12});
+    if(ai>.05&&Math.random()<.45)fx.push({ty:'smoke',x:nx,y:ny,vx:Math.cos(a)*v*.35+P.vx*.4,vy:Math.sin(a)*v*.35+P.vy*.4,s:R*(.08+Math.random()*.06),life:0,max:1.4+Math.random()*1.2,ai,ph:Math.random()*TAU})}
+}
+function marsStep(dt){   // standing on Mars: walk around it, head up; Shift lifts you off again
+  const[cx,cy]=marsC(),dx=P.x-cx,dy=P.y-cy,d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,tx=-uy,ty=ux;P.up=[ux,uy];
+  const[ix,iy]=inputVec(),il=Math.hypot(ix,iy),want=il?(ix*tx+iy*ty)/il:0,vw=BASE*P.mult/zoom*.35;
+  P.walkV=(P.walkV||0)+(want*vw-(P.walkV||0))*(1-Math.exp(-6*dt));
+  const ang=Math.atan2(uy,ux)+P.walkV*dt/RM,h=RM+rad()*1.15;
+  P.x=cx+Math.cos(ang)*h;P.y=cy+Math.sin(ang)*h;P.vx=-Math.sin(ang)*P.walkV;P.vy=Math.cos(ang)*P.walkV;P.dvx=P.dvy=0;
+  P.hd=ang;if(Math.abs(P.walkV)>vw*.1)P.walkDir=Math.sign(P.walkV);
+  P.tail+=(clamp(Math.abs(P.walkV)/vw,0,1)-P.tail)*(1-Math.exp(-6*dt));P.dph+=dt*(1.5+5*P.tail);P.moveAmt=P.tail;
+  tickTimers(dt);
+}
+function marsPull(dt){   // near Mars its gravity takes over; touch the ground and you land
+  if(!marsLock)return;const[mx,my]=marsC(),ddx=mx-P.x,ddy=my-P.y,dm=Math.hypot(ddx,ddy)||1;
+  if(dm>RM*6)return;const g=MARSG()*Math.min(1,(RM/dm)**2);P.vx+=ddx/dm*g*dt;P.vy+=ddy/dm*g*dt;
+  if(dm<RM+rad()*1.15){P.mars=true;P.air=false;P.walkV=0;P.walkDir=P.walkDir||1;if(AC){bus=FXD;tone(70,AC.currentTime,.3,.2,'sine',0,40);noise(AC.currentTime,.4,900,200,.1,.8);bus=null}flashMsg('WELCOME TO MARS')}}
+function rocketMan(R,t,mv,ph,air,walk){   // the human again, with a jetpack and a fireman's breathing mask
+  human(R,t,mv,ph,air,walk);
+  ctx.save();ctx.lineJoin='round';
+  const g=ctx.createLinearGradient(0,-R*.46,0,-R*.18);g.addColorStop(0,'#eef1f4');g.addColorStop(.5,'#9aa3ad');g.addColorStop(1,'#5d646c');
+  ctx.fillStyle=g;ctx.strokeStyle='rgba(30,30,35,.8)';ctx.lineWidth=R*.012;
+  for(const y of[-.44,-.32]){ctx.beginPath();ctx.roundRect(-R*.3,R*y,R*.56,R*.13,R*.065);ctx.fill();ctx.stroke()}   // twin tanks on the back
+  ctx.fillStyle='#c62828';ctx.fillRect(-R*.05,-R*.45,R*.06,R*.27);ctx.fillStyle='#f5c400';ctx.fillRect(R*.12,-R*.45,R*.025,R*.27);   // red band, yellow reflective stripe
+  ctx.fillStyle='#2b2e33';for(const y of[-.375,-.255]){ctx.beginPath();ctx.moveTo(-R*.3,R*y-R*.045);ctx.lineTo(-R*.43,R*y-R*.07);ctx.lineTo(-R*.43,R*y+R*.07);ctx.lineTo(-R*.3,R*y+R*.045);ctx.closePath();ctx.fill()}   // nozzles toward the feet
+  ctx.strokeStyle='#222';ctx.lineWidth=R*.03;ctx.beginPath();ctx.moveTo(R*.2,-R*.2);ctx.quadraticCurveTo(R*.35,-R*.05,R*.3,R*.12);ctx.moveTo(-R*.2,-R*.2);ctx.quadraticCurveTo(-R*.12,0,-R*.15,R*.14);ctx.stroke();   // straps
+  const hx=R*.82,hy=R*.02,hr=R*.2;   // a sleek fireman's full-face mask: black rubber, a tinted visor, a regulator and a ribbed hose back to the tanks
+  ctx.fillStyle='#16181b';ctx.beginPath();ctx.ellipse(hx+hr*.45,hy+hr*.05,hr*.62,hr*.78,.15,0,TAU);ctx.fill();
+  ctx.fillStyle='rgba(120,190,230,.6)';ctx.beginPath();ctx.ellipse(hx+hr*.55,hy-hr*.12,hr*.42,hr*.5,.15,0,TAU);ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=R*.01;ctx.beginPath();ctx.arc(hx+hr*.5,hy-hr*.2,hr*.3,Math.PI*1.1,Math.PI*1.5);ctx.stroke();
+  ctx.fillStyle='#f5c400';ctx.fillRect(hx+hr*.05,hy+hr*.55,hr*.7,hr*.12);
+  ctx.fillStyle='#2b2e33';ctx.beginPath();ctx.arc(hx+hr*.85,hy+hr*.45,hr*.24,0,TAU);ctx.fill();
+  ctx.strokeStyle='#1d1f22';ctx.lineWidth=R*.045;ctx.beginPath();ctx.moveTo(hx+hr*.85,hy+hr*.6);ctx.bezierCurveTo(hx,hy+hr*2.2,R*.35,-R*.05,R*.2,-R*.3);ctx.stroke();
+  ctx.strokeStyle='rgba(130,135,140,.6)';ctx.lineWidth=R*.008;ctx.setLineDash([R*.015,R*.015]);ctx.stroke();ctx.setLineDash([]);
+  ctx.restore();
+}
+let FLM=null,SMK=null;   // glow sprites for the exhaust
+function exhaustSprites(){if(FLM)return;const mk=(stops)=>{const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d'),r=g.createRadialGradient(32,32,0,32,32,32);stops.forEach(([o,s])=>r.addColorStop(o,s));g.fillStyle=r;g.fillRect(0,0,64,64);return c};
+  FLM=mk([[0,'rgba(255,255,230,1)'],[.25,'rgba(255,210,90,.9)'],[.6,'rgba(255,110,30,.45)'],[1,'rgba(200,40,10,0)']]);SMK=mk([[0,'rgba(170,170,175,.8)'],[.6,'rgba(140,140,148,.35)'],[1,'rgba(120,120,130,0)']])}
+// sky and space decorations, generated per cell from a seeded hash, chosen by the cell's height
+const SKYC=new Map(),SCW=24000,SCH=16000;
+function skyCell(i,j){const key=i*100003+j;let c=SKYC.get(key);if(c)return c;
+  const r=rng(hash2(i*7+3,j*13-5)),ac=SURF-(j+.5)*SCH,Am=altM(ac),o=[];
+  const add=(ty,n)=>{for(let q=0;q<n;q++)o.push({ty,x:(i+r())*SCW,y:(j+r())*SCH,ph:r()*TAU,s:.6+r()*.8,seed:Math.floor(r()*1e6)})};
+  if(ac>0){
+    if(Am>3&&Am<1500&&r()<.6)add('birds',1);
+    if(Am>300&&Am<12000)add('cloud',1+Math.floor(r()*3));
+    if(Am>8000&&Am<12500&&r()<.35)add('plane',1);
+    if(Am>18000&&Am<42000&&r()<.35)add('balloon',1);
+    if(Am>60000&&Am<130000)add('meteor',2+Math.floor(r()*2));
+    if(Am>90000&&Am<420000&&r()<.4)add('aurora',1);
+    if((Am>250000&&Am<2e6)||(Am>1.9e7&&Am<4.2e7))add('sat',2);
+    if(Am>1e6&&Am<8e10&&r()<.5)add('rock',1);
+    if(Am>1e9&&Am<7.6e10)add('asteroid',2+Math.floor(r()*3));
+    if(Am>3e8&&Am<7.6e10&&r()<.12)add('comet',1)}
+  if(SKYC.size>800)SKYC.clear();SKYC.set(key,o);return o}
+let CLD=null;   // puffy cloud sprites, built once
+function cloudSprites(){if(CLD)return CLD;CLD=[];for(let v=0;v<3;v++){const c=document.createElement('canvas');c.width=320;c.height=180;const g=c.getContext('2d'),r=rng(500+v);
+  for(let k=0;k<11;k++){const px=60+r()*200,py=70+r()*60-(k<4?0:30*r()),pr=30+r()*45,gr=g.createRadialGradient(px-pr*.25,py-pr*.4,pr*.1,px,py,pr);gr.addColorStop(0,'rgba(255,255,255,.98)');gr.addColorStop(.7,'rgba(225,232,242,.9)');gr.addColorStop(1,'rgba(200,210,225,0)');g.fillStyle=gr;g.beginPath();g.arc(px,py,pr,0,TAU);g.fill()}
+  CLD.push(c)}return CLD}
+function drawSkyObjects(){   // everything between the sea and Mars
+  const t=time,L=dayLight(),day=.35+.65*(1-L.wn),hw=W/2/zoom+SCW,hh=H/2/zoom+SCH;
+  for(let j=Math.floor((cam.y-hh)/SCH);j<=Math.floor((cam.y+hh)/SCH);j++)for(let i=Math.floor((cam.x-hw)/SCW);i<=Math.floor((cam.x+hw)/SCW);i++){
+    if((j+1)*SCH<SURF-A_MARS-RM*3||j*SCH>SURF)continue;
+    for(const o of skyCell(i,j)){let x=sxOf(o.x),y=syOf(o.y);if(x<-700||x>W+700||y<-700||y>H+700)continue;const s=o.s;ctx.save();
+      switch(o.ty){
+        case'birds':ctx.strokeStyle=`rgba(40,45,55,${.7*day})`;ctx.lineWidth=1.6;ctx.lineCap='round';for(let b=0;b<7;b++){const bx=x+(b%2?1:-1)*Math.ceil(b/2)*22*s+Math.sin(t*.5+b)*4,by=y+Math.ceil(b/2)*14*s,f=Math.sin(t*7+b+o.ph)*5*s;ctx.beginPath();ctx.moveTo(bx-10*s,by-f);ctx.quadraticCurveTo(bx-4*s,by-6*s,bx,by);ctx.quadraticCurveTo(bx+4*s,by-6*s,bx+10*s,by-f);ctx.stroke()}break;
+        case'cloud':{const c=cloudSprites()[o.seed%3],w=320*s*1.6,h=180*s*1.6;ctx.globalAlpha=.85*day+.1;ctx.drawImage(c,x-w/2+Math.sin(t*.02+o.ph)*30,y-h/2,w,h);break}
+        case'plane':{const px=x+((t*60+o.ph*100)%1600)-800;ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(px-14,y);ctx.lineTo(px-500,y+4);ctx.stroke();ctx.fillStyle='#e8ecf0';ctx.beginPath();ctx.ellipse(px,y,16,3,0,0,TAU);ctx.fill();ctx.beginPath();ctx.moveTo(px-2,y);ctx.lineTo(px-8,y+10);ctx.lineTo(px-4,y);ctx.moveTo(px-2,y);ctx.lineTo(px-8,y-10);ctx.lineTo(px-4,y);ctx.moveTo(px-14,y);ctx.lineTo(px-18,y-7);ctx.lineTo(px-12,y);ctx.fill();break}
+        case'balloon':y+=Math.sin(t*.4+o.ph)*10;ctx.fillStyle='rgba(245,245,240,.9)';ctx.beginPath();ctx.ellipse(x,y,24*s,30*s,0,0,TAU);ctx.fill();ctx.strokeStyle='rgba(200,200,200,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y+30*s);ctx.lineTo(x,y+70*s);ctx.stroke();ctx.fillStyle='#c94';ctx.fillRect(x-5,y+70*s,10,8);break;
+        case'meteor':{const L2=1400,u=((t*500+o.ph*400)%L2)/L2,mx=x+300-u*700,my=y-300+u*600;const g=ctx.createLinearGradient(mx,my,mx+120*s,my-100*s);g.addColorStop(0,'rgba(255,240,200,.95)');g.addColorStop(.3,'rgba(255,140,40,.6)');g.addColorStop(1,'rgba(255,60,20,0)');ctx.strokeStyle=g;ctx.lineWidth=4*s;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(mx,my);ctx.lineTo(mx+120*s,my-100*s);ctx.stroke();ctx.globalCompositeOperation='lighter';ctx.drawImage(SPK||cloudSprites()[0],mx-10,my-10,20,20);break}
+        case'aurora':ctx.globalCompositeOperation='lighter';for(let k=0;k<26;k++){const ax=x-650+k*50,ay=y+Math.sin(t*.6+k*.35+o.ph)*40,g=ctx.createLinearGradient(ax,ay-260,ax,ay+60);g.addColorStop(0,'rgba(150,60,220,0)');g.addColorStop(.5,'rgba(90,255,150,.16)');g.addColorStop(1,'rgba(60,255,140,0)');ctx.fillStyle=g;ctx.fillRect(ax,ay-260,46,320)}break;
+        case'sat':{const sx=x+((t*40*(o.seed%2?1:-1)+o.ph*200)%2400+2400)%2400-1200;ctx.translate(sx,y);ctx.rotate(o.ph);ctx.fillStyle='#d8d2b8';ctx.fillRect(-7*s,-5*s,14*s,10*s);ctx.fillStyle='#24418a';ctx.fillRect(-34*s,-4*s,24*s,8*s);ctx.fillRect(10*s,-4*s,24*s,8*s);ctx.strokeStyle='rgba(160,190,255,.5)';ctx.lineWidth=.8;ctx.strokeRect(-34*s,-4*s,24*s,8*s);ctx.strokeRect(10*s,-4*s,24*s,8*s);break}
+        case'rock':{const L2=2600,u=((t*900+o.ph*700)%L2)/L2,rx=x-1300+u*2600,ry=y+u*300;ctx.strokeStyle='rgba(200,190,170,.5)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx-60,ry-7);ctx.stroke();ctx.fillStyle='#bba';ctx.beginPath();ctx.arc(rx,ry,2.5,0,TAU);ctx.fill();break}
+        case'asteroid':{const r2=rng(o.seed),n=9,sz=(10+60*r2())*s;ctx.translate(x,y);ctx.rotate(t*.1*(r2()-.5)+o.ph);ctx.beginPath();for(let k=0;k<n;k++){const a=k/n*TAU,rr=sz*(.7+.35*r2());if(k)ctx.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);else ctx.moveTo(Math.cos(a)*rr,Math.sin(a)*rr)}ctx.closePath();
+          const g=ctx.createRadialGradient(sz*.3,-sz*.3,sz*.1,0,0,sz);g.addColorStop(0,'#a39a8c');g.addColorStop(1,'#3d3934');ctx.fillStyle=g;ctx.fill();ctx.fillStyle='rgba(0,0,0,.3)';for(let k=0;k<3;k++){ctx.beginPath();ctx.arc((r2()-.5)*sz,(r2()-.5)*sz,sz*(.1+.1*r2()),0,TAU);ctx.fill()}break}
+        case'comet':{ctx.globalCompositeOperation='lighter';const g=ctx.createLinearGradient(x,y,x-500*s,y+420*s);g.addColorStop(0,'rgba(200,230,255,.55)');g.addColorStop(1,'rgba(120,170,255,0)');ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(x,y-10*s);ctx.lineTo(x-520*s,y+400*s);ctx.lineTo(x-430*s,y+470*s);ctx.lineTo(x+10*s,y+8*s);ctx.closePath();ctx.fill();
+          const h=ctx.createRadialGradient(x,y,0,x,y,26*s);h.addColorStop(0,'rgba(255,255,255,1)');h.addColorStop(.3,'rgba(190,225,255,.7)');h.addColorStop(1,'rgba(120,180,255,0)');ctx.fillStyle=h;ctx.beginPath();ctx.arc(x,y,26*s,0,TAU);ctx.fill();break}
+      }ctx.restore()}}
+  drawSpecials();
+}
+const SPECIALS=[{ty:'iss',m:408000,par:1,xf:.3},{ty:'moon',m:3.844e8,par:.04,xf:.78,r:260},{ty:'venus',m:4.1e10,par:.03,xf:.2,r:55},{ty:'jupiter',m:6.2e10,par:.025,xf:.84,r:110},{ty:'saturn',m:7.1e10,par:.02,xf:.18,r:70}];
+for(const s of SPECIALS)s.a=altA(s.m);
+function drawSpecials(){   // the ISS, the Moon and a few planets, at their real heights (far ones scroll past slowly, like distant scenery)
+  for(const o of SPECIALS){const y=H/2+((SURF-o.a)-cam.y)*zoom*o.par,x=W*o.xf;if(y<-600||y>H+600)continue;ctx.save();
+    if(o.ty==='iss'){ctx.translate(x,y);ctx.fillStyle='#d9d4c4';ctx.fillRect(-60,-6,120,12);ctx.fillRect(-10,-26,20,52);ctx.fillStyle='#b8924a';for(const sx of[-120,-90,70,100])for(const sy of[-40,14]){ctx.fillRect(sx,sy,24,26)}ctx.strokeStyle='#888';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-124,0);ctx.lineTo(124,0);ctx.stroke()}
+    else{const r=o.r,g=ctx.createRadialGradient(x-r*.35,y-r*.35,r*.1,x,y,r);
+      if(o.ty==='moon'){g.addColorStop(0,'#f2f0ea');g.addColorStop(1,'#77746e');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();ctx.fillStyle='rgba(80,78,74,.35)';for(const[a,b,c]of[[-.3,-.2,.22],[.25,.1,.16],[-.1,.35,.12],[.4,-.35,.1]]){ctx.beginPath();ctx.arc(x+a*r,y+b*r,c*r,0,TAU);ctx.fill()}}
+      else if(o.ty==='venus'){g.addColorStop(0,'#fff6d8');g.addColorStop(1,'#c9a45a');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill()}
+      else if(o.ty==='jupiter'){g.addColorStop(0,'#f3e2c4');g.addColorStop(1,'#8a6a46');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();ctx.save();ctx.clip();ctx.fillStyle='rgba(150,100,60,.35)';for(let k=-3;k<=3;k++)ctx.fillRect(x-r,y+k*r*.27,2*r,r*.1);ctx.fillStyle='rgba(190,80,50,.7)';ctx.beginPath();ctx.ellipse(x+r*.3,y+r*.3,r*.16,r*.09,0,0,TAU);ctx.fill();ctx.restore()}
+      else{ctx.strokeStyle='rgba(220,200,150,.7)';ctx.lineWidth=r*.12;ctx.beginPath();ctx.ellipse(x,y,r*2,r*.5,-.2,Math.PI,TAU);ctx.stroke();g.addColorStop(0,'#f6e6b8');g.addColorStop(1,'#9c8350');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill();ctx.beginPath();ctx.ellipse(x,y,r*2,r*.5,-.2,0,Math.PI);ctx.stroke()}}
+    ctx.restore()}
+}
+function drawEarthAndSpace(ys){   // as you climb: the sky darkens to space, stars come out, the Sun burns white and the Earth's curved limb sinks below you
+  const Am=altM(SURF-cam.y);if(Am<3000)return 0;
+  const k=clamp((Math.log(Am)-Math.log(3000))/(Math.log(100000)-Math.log(3000)),0,1);
+  ctx.fillStyle=`rgba(0,0,6,${.97*k})`;ctx.fillRect(0,0,W,H);
+  if(SAND){ctx.globalAlpha=k*.9;const T=1024*.9,x0=-((cam.x*zoom*.002)%T+T)%T,y0=-((cam.y*zoom*.002)%T+T)%T;for(let y=y0;y<H;y+=T)for(let x=x0;x<W;x+=T)ctx.drawImage(SAND,x,y,T+1,T+1);ctx.globalAlpha=1}
+  if(Am>15000){const Re=6.371e6,th=Math.acos(Re/(Re+Am)),F=H*.6,top=H*.5+F*th,r=F*(Math.PI/2-th),ex=W/2,ey=top+r,al=clamp((Am-15000)/45000,0,1);
+    if(top<H+20){ctx.save();ctx.globalAlpha=al;const ag=ctx.createRadialGradient(ex,ey,r*.97,ex,ey,r*1.06);ag.addColorStop(0,'rgba(120,190,255,.9)');ag.addColorStop(1,'rgba(80,150,255,0)');ctx.fillStyle=ag;ctx.beginPath();ctx.arc(ex,ey,r*1.06,0,TAU);ctx.fill();
+      const eg=ctx.createRadialGradient(ex-r*.3,ey-r*.6,r*.1,ex,ey,r);eg.addColorStop(0,'#3d8fd9');eg.addColorStop(.7,'#1d5ea8');eg.addColorStop(1,'#0c2f63');ctx.fillStyle=eg;ctx.beginPath();ctx.arc(ex,ey,r,0,TAU);ctx.fill();
+      ctx.clip();ctx.fillStyle='rgba(255,255,255,.35)';for(let q=0;q<14;q++){const a=-Math.PI/2+(q-7)*.11,d=r*(.86+.1*Math.sin(q*1.7));ctx.beginPath();ctx.ellipse(ex+Math.cos(a)*d,ey+Math.sin(a)*d,r*.08,r*.02,a+Math.PI/2,0,TAU);ctx.fill()}
+      ctx.fillStyle='rgba(70,140,60,.35)';ctx.beginPath();ctx.ellipse(ex-r*.15,ey-r*.92,r*.12,r*.04,0,0,TAU);ctx.fill();ctx.restore()}}
+  const sx=W*.84,sy=H*.16,sg=ctx.createRadialGradient(sx,sy,0,sx,sy,H*.45);sg.addColorStop(0,`rgba(255,255,245,${k})`);sg.addColorStop(.05,`rgba(255,250,220,${.8*k})`);sg.addColorStop(.25,`rgba(255,230,170,${.12*k})`);sg.addColorStop(1,'rgba(255,220,150,0)');ctx.fillStyle=sg;ctx.fillRect(0,0,W,H);
+  return k;
+}
+function drawMars(){   // Mars: far off it is a growing red dot; in the last stretch it swells into the real planet you can land on
+  const a=SURF-cam.y;if(a<A_MARS*.55)return;
+  const[cx,cy]=marsC(),d=(SURF-A_MARS)-cam.y,Dt=90000,p=clamp(1-d/(A_MARS*.45),0,1),fx0=W/2+clamp((marsX-cam.x)*zoom*.03,-W*.3,W*.3),fy0=H*.16,fr=6+254*p*p*p,k=clamp(1-d/Dt,0,1)**2;
+  const X=fx0+(sxOf(cx)-fx0)*k,Y=fy0+(syOf(cy)-fy0)*k,r=fr+(RM*zoom-fr)*k;
+  if(X+r<0||X-r>W||Y+r<0||Y-r>H)return;
+  ctx.save();const ag=ctx.createRadialGradient(X,Y,r*.98,X,Y,r*1.04);ag.addColorStop(0,'rgba(255,160,120,.5)');ag.addColorStop(1,'rgba(255,140,100,0)');ctx.fillStyle=ag;ctx.beginPath();ctx.arc(X,Y,r*1.04,0,TAU);ctx.fill();
+  const g=ctx.createRadialGradient(X-r*.3,Y-r*.3,r*.05,X,Y,r);g.addColorStop(0,'#e0703a');g.addColorStop(.7,'#b4481f');g.addColorStop(1,'#7a2a10');ctx.fillStyle=g;ctx.beginPath();ctx.arc(X,Y,r,0,TAU);ctx.fill();
+  ctx.clip();ctx.fillStyle='rgba(90,30,15,.35)';for(let q=0;q<9;q++){const an=q*.7+.3,dd=r*(.3+.5*((q*.37)%1));ctx.beginPath();ctx.ellipse(X+Math.cos(an)*dd,Y+Math.sin(an)*dd,r*.18,r*.08,an,0,TAU);ctx.fill()}
+  ctx.fillStyle='rgba(255,250,245,.85)';ctx.beginPath();ctx.ellipse(X,Y-r*.97,r*.18,r*.06,0,0,TAU);ctx.fill();   // a polar cap
+  if(k>.95){const pa=Math.atan2(cam.y-cy,cam.x-cx),span=(Math.hypot(W,H)/zoom)/RM;   // near the ground: craters and rocks along the horizon around you
+    for(let q=Math.floor((pa-span)/.012);q<=Math.ceil((pa+span)/.012);q++){const r2=rng(q*31+7),an=q*.012+r2()*.008,cs=(300+r2()*2200)*zoom,dep=(r2()*900)*zoom,qx=X+Math.cos(an)*(r-dep-cs*.3),qy=Y+Math.sin(an)*(r-dep-cs*.3);
+      if(qx<-cs||qx>W+cs||qy<-cs||qy>H+cs)continue;ctx.fillStyle='rgba(70,22,10,.45)';ctx.beginPath();ctx.ellipse(qx,qy,cs,cs*.35,an+Math.PI/2,0,TAU);ctx.fill();ctx.strokeStyle='rgba(240,150,110,.35)';ctx.lineWidth=Math.max(1,cs*.08);ctx.beginPath();ctx.ellipse(qx,qy,cs,cs*.35,an+Math.PI/2,Math.PI,TAU);ctx.stroke()}}
+  ctx.restore();
+}
+
 // ---- main loop ----
 function frame(now){
   const fT0=performance.now(),rdt=Math.min(Math.max((now-last)/1000,0),.05);last=now;
-  let dt=paused?0:rdt*(P.air?.6:1);   /* time runs 40% slower while you are in the air */if(hitStop>0){hitStop-=rdt;dt=0}
+  let dt=paused?0:rdt*(P.air&&P.evos!==ROCKET?.6:1);   /* time runs 40% slower while you leap through the air (not for the rocket man) */if(hitStop>0){hitStop-=rdt;dt=0}
   time+=dt;shake*=Math.exp(-10*rdt);shx=(Math.random()-.5)*shake;shy=(Math.random()-.5)*shake;
+  hiUp=syOf(SURF)>H+60;   // the sea is entirely below the screen: nothing in the water needs simulating or drawing
   if(dt>0){
-    const Le=P.sl-1,mmps=1+.6*((Le<=18?1+.14*Le:Le<=40?3.52+.0705*(Le-18):5.071+.03*(Le-40))-1),   // speed steps up only on a level-up, and more gently after 41; v19: each step is 40% smaller
+    const Le=P.sl-1,mmps=1+.6*((Le<=18?1+.14*Le:Le<=40?3.52+.0705*(Le-18):5.071+.03*(Le-40))-1),   // speed steps up only on a level-up, and more gently after 41
       top=P.evos===URCH?35/3:70;
     P.mult+=(Math.min(top,mmps)-P.mult)*(1-Math.exp(-2*dt));
-    if(!dead){updatePlayer(dt,time);checkSurface();updateHairs(dt,time);updateWhiskers(dt)}updateChunks();
-    const mdt=dt;   // v19: the world's creatures keep their full speed; only you are slowed
-    {const reach=viewR()*1.2+CHUNK*.75;   // only food near the screen is simulated; chunks farther out wait, frozen, until you come close
-      for(const c of chunks.values()){if(Math.abs((c.cx+.5)*CHUNK-P.x)>reach||Math.abs((c.cy+.5)*CHUNK-P.y)>reach)continue;cling(c.blobs,mdt);updateArr(c.blobs,mdt);c.blobs=c.blobs.filter(b=>!b.dead)}}
-    updateArr(striders,mdt);striders=striders.filter(s=>!s.dead);
+    if(!dead){updatePlayer(dt,time);rocketUpdate(dt);checkSurface();updateHairs(dt,time);updateWhiskers(dt)}
+    if(!marsLock){marsX=P.x;if(SURF-P.y>A_MARS-400000)marsLock=true}   // Mars lines up with you on the way out, then stays put
+    if(!hiUp){updateChunks();
+      const reach=viewR()*1.2+CHUNK*.75;   // only food near the screen is simulated; chunks farther out wait, frozen, until you come close
+      for(const c of chunks.values()){if(Math.abs((c.cx+.5)*CHUNK-P.x)>reach||Math.abs((c.cy+.5)*CHUNK-P.y)>reach)continue;cling(c.blobs,dt);updateArr(c.blobs,dt);compact(c.blobs)}
+      updateArr(striders,dt);compact(striders);updateRods(dt);updateSpawns();updateEnemies(dt)}
+    else if(chunks.size&&SURF-P.y>viewR()*6)chunks.clear();   // far above the sea: let the food go (it is rebuilt on the way down)
     evoS+=(P.evos-evoS)*(1-Math.exp(-1.2*dt));
-    updateRods(mdt);updateSpawns();updateEnemies(mdt);if(mouse.rdown&&!dead&&P.knifeCD<=0)knife();updateKnife(dt);updateBubbles(dt);updateWake(dt);updateFx(dt);
+    if(mouse.rdown&&!dead&&P.knifeCD<=0)knife();updateKnife(dt);updateBubbles(dt);updateWake(dt);updateFx(dt);
     zoomT=zoomFor();zoom+=(zoomT-zoom)*(1-Math.exp(-2*dt));
     {const ox=cam.x,oy=cam.y;cam.x+=(P.x-cam.x)*(1-Math.exp(-12*dt));cam.y+=(P.y-cam.y)*(1-Math.exp(-12*dt));const lz=Math.pow(FRACZ,evoS);LAY.x+=(cam.x-ox)*zoom*.75/lz;LAY.y+=(cam.y-oy)*zoom*.75/lz;
       const ss=starScale();STARO.x+=(cam.x-ox)*zoom*.5/ss;STARO.y+=(cam.y-oy)*zoom*.5/ss;HAZE.x+=(cam.x-ox)*zoom*.0003;HAZE.y+=(cam.y-oy)*zoom*.0003}
-    if(avail()&&!dead)for(let i=0;i<6&&fx.length<900;i++){const a=Math.random()*TAU,rr=rad()+(188+Math.random()*6-3)/zoom,v=(3+Math.random()*12)/zoom;fx.push({ty:'spark',x:P.x+Math.cos(a)*rr,y:P.y+Math.sin(a)*rr,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:0,max:.125+Math.random()*.15,ph:Math.random()*TAU})}   /* the ring sits twice as far out; half as many sparkles, living half as long */   // hug the ring, fade fast
+    if(avail()&&!dead)for(let i=0;i<6&&fx.length<900;i++){const a=Math.random()*TAU,rr=rad()+(188+Math.random()*6-3)/zoom,v=(3+Math.random()*12)/zoom;fx.push({ty:'spark',x:P.x+Math.cos(a)*rr,y:P.y+Math.sin(a)*rr,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:0,max:.125+Math.random()*.15,ph:Math.random()*TAU})}   // the ready-to-evolve sparkles hug the ring
     const mt=frac();meterS=mt<meterS-.5?mt:meterS+(mt-meterS)*(1-Math.exp(-5*dt));   // the ring glides to its new place; it only snaps back on a level-up
   }
   $('evo').classList.toggle('on',avail()&&!dead);
   msgT=Math.max(0,msgT-rdt);
   if(!paused)$('msg').textContent=P.skipT>0?'PRESS 4 AGAIN TO SKIP':msgT>0?msgTxt:'';
-  {const mps=BASE*P.mult*(P.sprinting?1.5:1)/zoom*motionK()/MPU,   // your real top swimming speed, on the same scale as the depth meter (1 world unit = 1 mm)
-    sv=mps<.01?(mps*1000).toFixed(1)+' mm/s':mps<1?(mps*100).toFixed(1)+' cm/s':mps.toFixed(1)+' m/s';if(sv!==lastSpd){lastSpd=sv;$('sp').textContent='SPEED '+sv}}
-  {const d=(P.y-SURF)/MPU,s=d>=0?'DEPTH '+d.toFixed(1)+' m':'ALTITUDE '+(-d).toFixed(1)+' m';if(s!==lastDp){lastDp=s;$('dp').textContent=s}}   // depth, always shown at the middle left
+  {const a=SURF-P.y,flying=(P.air||P.mars)&&P.evos===ROCKET;   // speed on the height meter's scale: real metres per second near the sea, growing with the meter's exponential scale up high
+    let mps=flying?Math.hypot(P.vx,P.vy)/MPU*(P.mars?1:Math.exp(Math.max(0,a)/SKS)):BASE*P.mult*(P.sprinting?1.5:1)/zoom*motionK()/MPU;
+    const sv=mps<.01?(mps*1000).toFixed(1)+' mm/s':mps<1?(mps*100).toFixed(1)+' cm/s':mps<1000?mps.toFixed(1)+' m/s':Math.round(mps/1000).toLocaleString()+' km/s';if(sv!==lastSpd){lastSpd=sv;$('sp').textContent='SPEED '+sv}}
+  {let s;if(P.mars)s='ON MARS';else if(marsLock){const[mx,my]=marsC(),dm=Math.hypot(P.x-mx,P.y-my)-RM;s=dm<RM*3?'ABOVE MARS '+fmtM(dm/MPU):null}
+    if(!s)s='HEIGHT '+fmtM(altM(SURF-P.y));if(s!==lastDp){lastDp=s;$('dp').textContent=s}}   // the height meter (negative below the surface), always at the middle left
   $('dfill').style.transform='scaleX('+(1-P.dashCD/2)+')';$('sfill').style.transform='scaleX('+P.sE+')';$('sfill').style.opacity=P.sLock?.35:1;
-  // draw: background, web layer, food under you, enemies, you, food over you, creatures, UI
-  drawBackground();drawSquiggles();
-  const cp=cap();
-  UNDER.length=0;OVER.length=0;
-  const vmx=W/2/zoom+rad()*2.2+80/zoom,vmy=H/2/zoom+rad()*2.2+80/zoom;   // whole chunks off screen are skipped before their food is looked at
-  for(const c of chunks.values()){if((c.cx+1)*CHUNK<cam.x-vmx||c.cx*CHUNK>cam.x+vmx||(c.cy+1)*CHUNK<cam.y-vmy||c.cy*CHUNK>cam.y+vmy)continue;for(const b of c.blobs){
-    const sx=sxOf(b.x),sy=syOf(b.y),R=foodDrawR(b,cp)*zoom;
-    if(sx<-R*2-60||sx>W+R*2+60||sy<-R*2-60||sy>H+R*2+60)continue;
-    (b.val>cp&&!b.sp?OVER:UNDER).push(b);   // you always pass behind food too big to eat
-  }}
-  {const d=Math.max(0,(cam.y-SURF)/MPU),dk=.5*(1-Math.exp(-d/170));CAUSK=Math.exp(-d/190);   // the deeper you are, the darker the water and the fainter the caustics
+  // draw: the sea (background, web layer, food, enemies), the sky above it, you, creatures, UI
+  const cp=cap();UNDER.length=0;OVER.length=0;
+  if(!hiUp){drawBackground();drawSquiggles();
+    const vmx=W/2/zoom+rad()*2.2+80/zoom,vmy=H/2/zoom+rad()*2.2+80/zoom;   // whole chunks off screen are skipped before their food is looked at
+    for(const c of chunks.values()){if((c.cx+1)*CHUNK<cam.x-vmx||c.cx*CHUNK>cam.x+vmx||(c.cy+1)*CHUNK<cam.y-vmy||c.cy*CHUNK>cam.y+vmy)continue;for(const b of c.blobs){
+      const sx=sxOf(b.x),sy=syOf(b.y),R=foodDrawR(b,cp)*zoom;
+      if(sx<-R*2-60||sx>W+R*2+60||sy<-R*2-60||sy>H+R*2+60)continue;
+      (b.val>cp&&!b.sp?OVER:UNDER).push(b)}}   // you always pass behind food too big to eat
+    const d=Math.max(0,(cam.y-SURF)/MPU),dk=.5*(1-Math.exp(-d/170));CAUSK=Math.exp(-d/190);   // the deeper you are, the darker the water and the fainter the caustics
     if(dk>.01){ctx.fillStyle=`rgba(0,3,12,${dk})`;const y0=Math.max(0,syOf(SURF));ctx.fillRect(0,y0,W,H-y0)}}
   drawSky();   // the sky above the water (everything in the water is clipped to below its surface)
-  let cw=clipWater();
-  drawFoodList(UNDER,time,cp);
-  drawEnemies(time);
-  drawWake();drawBubbles();
-  if(cw)ctx.restore();
+  if(syOf(SURF)>-90){drawEarthAndSpace();drawSkyObjects();drawMars()}
+  let cw;
+  if(!hiUp){cw=clipWater();drawFoodList(UNDER,time,cp);drawEnemies(time);drawWake();drawBubbles();if(cw)ctx.restore()}
+  else drawBubbles();
   drawContrails();
   if(!dead){drawTrail();drawPlayer(time);drawHairs()}
-  cw=clipWater();
-  drawFoodList(OVER,time,cp);
-  drawFoodList(striders,time,cp);
-  drawBact();drawPrey(time);
-  if(cw)ctx.restore();
+  if(!hiUp){cw=clipWater();drawFoodList(OVER,time,cp);drawFoodList(striders,time,cp);drawBact();drawPrey(time);drawBig(time);if(cw)ctx.restore()}
   drawKnife();
   if(!dead)drawMeter();
-  cw=clipWater();caustics(time);if(cw)ctx.restore();
+  if(!hiUp){cw=clipWater();caustics(time);if(cw)ctx.restore()}
   drawFx();
   perfTick(performance.now()-fT0);
   requestAnimationFrame(frame);
 }
+function keep(a,ok){let j=0;for(let i=0;i<a.length;i++)if(ok(a[i]))a[j++]=a[i];a.length=j}   // filter an array in place
+function compact(a){let j=0;for(let i=0;i<a.length;i++)if(!a[i].dead)a[j++]=a[i];a.length=j}   // drop dead entries in place (no new array every frame)
 
 // ---- start ----
 function spawnStart(){   // fewer striders than v13, spread farther out; a few free mitochondria
